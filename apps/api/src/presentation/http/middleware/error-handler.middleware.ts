@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
 import { Prisma } from "@prisma/client";
+import { MulterError } from "multer";
 import {
   ConflictError,
   ForbiddenError,
@@ -49,6 +50,14 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
   }
   if (err instanceof ConflictError) {
     res.status(409).json({ message: err.message });
+    return;
+  }
+  if (err instanceof MulterError) {
+    if (err.code === "LIMIT_FILE_SIZE") {
+      res.status(413).json({ message: "That file is too large. Please upload a smaller one." });
+      return;
+    }
+    res.status(400).json({ message: err.message });
     return;
   }
 
