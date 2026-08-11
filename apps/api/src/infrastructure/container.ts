@@ -54,12 +54,17 @@ export const repositories = {
 
 // R2 kicks in the moment all four credentials are set; otherwise local disk (dev default).
 // Same IFileStorage contract either way -- nothing else in the app needs to know which one is live.
+//
+// The public URL R2FileStorage hands back always points at this API's own domain
+// (PUBLIC_UPLOADS_BASE_URL), not R2's public bucket URL -- app.ts proxies /uploads through to R2
+// server-to-server when this backend is active, which sidesteps browser CORS entirely instead of
+// depending on R2's public-bucket CORS behavior (unreliable for some clients/edges in practice).
 function createFileStorage(): IFileStorage {
   if (env.R2_ACCOUNT_ID && env.R2_ACCESS_KEY_ID && env.R2_SECRET_ACCESS_KEY && env.R2_BUCKET_NAME) {
     return new R2FileStorage(
       env.R2_ACCOUNT_ID,
       env.R2_BUCKET_NAME,
-      env.R2_PUBLIC_BASE_URL ?? env.PUBLIC_UPLOADS_BASE_URL,
+      env.PUBLIC_UPLOADS_BASE_URL,
       env.R2_ACCESS_KEY_ID,
       env.R2_SECRET_ACCESS_KEY,
     );

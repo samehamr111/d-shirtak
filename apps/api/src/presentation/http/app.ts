@@ -3,8 +3,11 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import path from "node:path";
 import { env } from "../../infrastructure/config/env.js";
+import { services } from "../../infrastructure/container.js";
+import { R2FileStorage } from "../../infrastructure/storage/r2-file-storage.js";
 import { requireAuth, requireRole } from "./middleware/auth.middleware.js";
 import { errorHandler, notFoundHandler } from "./middleware/error-handler.middleware.js";
+import { createUploadsProxyRouter } from "./routes/uploads-proxy.routes.js";
 import { authRouter } from "./routes/auth.routes.js";
 import { catalogRouter } from "./routes/catalog.routes.js";
 import { designRouter } from "./routes/design.routes.js";
@@ -22,9 +25,15 @@ export function createApp() {
   app.use(cors({ origin: env.corsOrigins, credentials: true }));
   app.use(cookieParser());
   app.use(express.json({ limit: "10mb" }));
-  // Every uploaded file gets a fresh random name and is never overwritten (see
-  // LocalDiskFileStorage/R2FileStorage) -- safe to cache aggressively and forever.
-  app.use("/uploads", express.static(path.resolve(env.UPLOADS_DIR), { maxAge: "1y", immutable: true }));
+  // Every uploaded file gets a fresh random name and is never overwritten -- safe to cache
+  // aggressively and forever, either way. R2-backed uploads are proxied through this same
+  // domain (server-to-server, no browser CORS involved) rather than served from the R2 public
+  // URL directly -- see uploads-proxy.routes.ts for why.
+  if (services.fileStorage instanceof R2FileStorage) {
+    app.use("/uploads", createUploadsProxyRouter(services.fileStorage));
+  } else {
+    app.use("/uploads", express.static(path.resolve(env.UPLOADS_DIR), { maxAge: "1y", immutable: true }));
+  }
 
   app.get("/health", (_req, res) => res.json({ status: "ok" }));
 

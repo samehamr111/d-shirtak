@@ -125,7 +125,10 @@ export function DesignerPage() {
       if (typeof reader.result === "string") {
         activeCanvasRef.current
           ?.addImageFromUrl(reader.result, false)
-          .catch(() => setError("Couldn't add that image to the canvas. Try a different file."));
+          .catch((err) => {
+            console.error("addImageFromUrl (upload) failed:", err);
+            setError("Couldn't add that image to the canvas. Try a different file.");
+          });
       }
     };
     reader.readAsDataURL(file);

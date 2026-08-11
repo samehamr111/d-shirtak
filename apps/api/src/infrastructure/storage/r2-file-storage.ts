@@ -1,7 +1,15 @@
 import { randomUUID } from "node:crypto";
-import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import type { Readable } from "node:stream";
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { ValidationError } from "../../domain/errors.js";
 import type { IFileStorage, SavedFile, UploadCategory } from "../../domain/ports/file-storage.port.js";
+
+export interface ProxiedObject {
+  body: Readable;
+  contentType?: string;
+  contentLength?: number;
+  etag?: string;
+}
 
 const BASE64_IMAGE_PATTERN = /^data:image\/(png|jpeg|jpg|webp);base64,(.+)$/;
 
@@ -71,5 +79,24 @@ export class R2FileStorage implements IFileStorage {
 
   async delete(relativePath: string): Promise<void> {
     await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: relativePath }));
+  }
+
+  /** Fetches an object server-to-server so it can be proxied through the API's own domain
+   *  instead of served directly from the R2 public URL -- see routes/uploads-proxy.routes.ts.
+   *  Server-to-server requests aren't subject to browser CORS at all, which sidesteps R2's
+   *  public-bucket CORS behavior having been unreliable for some clients/edges in practice. */
+  async getObject(relativePath: string): Promise<ProxiedObject | null> {
+    try {
+      const result = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: relativePath }));
+      return {
+        body: result.Body as Readable,
+        contentType: result.ContentType,
+        contentLength: result.ContentLength,
+        etag: result.ETag,
+      };
+    } catch (err) {
+      if ((err as { name?: string }).name === "NoSuchKey") return null;
+      throw err;
+    }
   }
 }
