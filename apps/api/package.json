@@ -10,8 +10,7 @@
     "typecheck": "tsc --noEmit",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "seed": "tsx prisma/seed.ts",
-    "add-catalog-expansion": "tsx prisma/add-catalog-expansion.ts"
+    "seed": "tsx prisma/seed.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
