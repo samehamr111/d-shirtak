@@ -253,13 +253,14 @@ model DesignAsset {
 /// tool), tracked so a good one can later be promoted into the curated DesignAsset library.
 model UserUpload {
   id              String   @id @default(cuid())
-  userId          String
+  /// Nullable -- the designer canvas doesn't require sign-in, so most uploads come from guests.
+  userId          String?
   imageUrl        String
   originalName    String?
   promotedAssetId String?  @unique
   createdAt       DateTime @default(now())
 
-  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user          User?        @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   promotedAsset DesignAsset? @relation(fields: [promotedAssetId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("user_uploads")

@@ -18,7 +18,9 @@ export type CreateColorInput = z.infer<typeof createColorSchema>;
 
 export const createSizeSchema = z.object({
   name: z.string().min(1).max(10),
-  sortOrder: z.number().int().min(0),
+  // The server always assigns the next sequence number on create (see PrismaSizeRepository) —
+  // this is accepted only so `update` can share the same shape to explicitly reorder sizes.
+  sortOrder: z.number().int().min(0).optional(),
 });
 export type CreateSizeInput = z.infer<typeof createSizeSchema>;
 

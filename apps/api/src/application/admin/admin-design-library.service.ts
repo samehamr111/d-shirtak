@@ -74,12 +74,12 @@ export class AdminDesignLibraryService {
     const uploads = await this.userUploads.list();
     return Promise.all(
       uploads.map(async (u) => {
-        const uploader = await this.users.findById(u.userId);
+        const uploader = u.userId ? await this.users.findById(u.userId) : null;
         return {
           id: u.id,
           imageUrl: u.imageUrl,
           originalName: u.originalName,
-          uploaderEmail: uploader?.email ?? "unknown",
+          uploaderEmail: uploader?.email ?? "Guest",
           promoted: u.promotedAssetId !== null,
           createdAt: u.createdAt.toISOString(),
         };

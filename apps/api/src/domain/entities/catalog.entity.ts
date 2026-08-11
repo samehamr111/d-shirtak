@@ -107,7 +107,8 @@ export interface ProductListFilter {
  *  curated design library. */
 export interface UserUpload {
   id: string;
-  userId: string;
+  /** Null for uploads made without signing in -- the designer canvas doesn't require it. */
+  userId: string | null;
   imageUrl: string;
   originalName: string | null;
   promotedAssetId: string | null;

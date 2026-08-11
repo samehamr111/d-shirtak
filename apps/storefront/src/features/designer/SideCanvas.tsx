@@ -33,10 +33,11 @@ interface SideCanvasProps {
   printArea: PrintAreaCm | undefined;
   visible: boolean;
   onSelectionChange?: (selection: { isText: boolean; style?: TextStyle } | null) => void;
+  onBackgroundError?: () => void;
 }
 
 export const SideCanvas = forwardRef<SideCanvasHandle, SideCanvasProps>(function SideCanvas(
-  { backgroundUrl, printArea, visible, onSelectionChange },
+  { backgroundUrl, printArea, visible, onSelectionChange, onBackgroundError },
   ref,
 ) {
   const canvasElRef = useRef<HTMLCanvasElement>(null);
@@ -87,25 +88,35 @@ export const SideCanvas = forwardRef<SideCanvasHandle, SideCanvasProps>(function
     const canvas = fabricRef.current;
     if (!canvas || !backgroundUrl) return;
     let cancelled = false;
-    FabricImage.fromURL(backgroundUrl, { crossOrigin: "anonymous" }).then((img) => {
-      if (cancelled || !fabricRef.current) return;
-      img.set({
-        left: 0,
-        top: 0,
-        originX: "left",
-        originY: "top",
-        scaleX: CANVAS_WIDTH / (img.width || CANVAS_WIDTH),
-        scaleY: CANVAS_HEIGHT / (img.height || CANVAS_HEIGHT),
-        selectable: false,
-        evented: false,
+    FabricImage.fromURL(backgroundUrl, { crossOrigin: "anonymous" })
+      .then((img) => {
+        if (cancelled || !fabricRef.current) return;
+        // A CORS-blocked or 404'd image resolves as a zero-size FabricImage instead of
+        // rejecting — catch that here too, not just the .catch() below.
+        if (!img.width || !img.height) {
+          onBackgroundError?.();
+          return;
+        }
+        img.set({
+          left: 0,
+          top: 0,
+          originX: "left",
+          originY: "top",
+          scaleX: CANVAS_WIDTH / img.width,
+          scaleY: CANVAS_HEIGHT / img.height,
+          selectable: false,
+          evented: false,
+        });
+        canvas.backgroundImage = img;
+        canvas.renderAll();
+      })
+      .catch(() => {
+        if (!cancelled) onBackgroundError?.();
       });
-      canvas.backgroundImage = img;
-      canvas.renderAll();
-    });
     return () => {
       cancelled = true;
     };
-  }, [backgroundUrl]);
+  }, [backgroundUrl, onBackgroundError]);
 
   useEffect(() => {
     const canvas = fabricRef.current;

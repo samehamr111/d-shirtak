@@ -11,15 +11,13 @@ export function SizesPanel() {
   const deleteSize = useDeleteSize();
   const { showToast } = useToast();
   const [name, setName] = useState("");
-  const [sortOrder, setSortOrder] = useState(0);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     try {
-      await createSize.mutateAsync({ name, sortOrder });
+      await createSize.mutateAsync({ name });
       showToast({ type: "success", message: `Size "${name}" added.` });
       setName("");
-      setSortOrder(0);
     } catch (err) {
       showToast({ type: "error", message: err instanceof ApiError ? err.message : "Failed to create size." });
     }
@@ -41,18 +39,10 @@ export function SizesPanel() {
         <Field label="Name">
           <Input value={name} onChange={(e) => setName(e.target.value)} required className="w-24" />
         </Field>
-        <Field label="Sort order">
-          <Input
-            type="number"
-            value={sortOrder}
-            onChange={(e) => setSortOrder(Number(e.target.value))}
-            required
-            className="w-24"
-          />
-        </Field>
         <PrimaryButton type="submit" disabled={createSize.isPending}>
           Add
         </PrimaryButton>
+        <p className="w-full text-xs text-ink/40">New sizes are added to the end of the list — drag to reorder isn't available yet.</p>
       </form>
       {isLoading ? (
         <p className="text-sm text-ink/60">Loading…</p>

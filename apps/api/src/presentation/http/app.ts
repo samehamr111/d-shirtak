@@ -22,7 +22,9 @@ export function createApp() {
   app.use(cors({ origin: env.corsOrigins, credentials: true }));
   app.use(cookieParser());
   app.use(express.json({ limit: "10mb" }));
-  app.use("/uploads", express.static(path.resolve(env.UPLOADS_DIR)));
+  // Every uploaded file gets a fresh random name and is never overwritten (see
+  // LocalDiskFileStorage/R2FileStorage) -- safe to cache aggressively and forever.
+  app.use("/uploads", express.static(path.resolve(env.UPLOADS_DIR), { maxAge: "1y", immutable: true }));
 
   app.get("/health", (_req, res) => res.json({ status: "ok" }));
 

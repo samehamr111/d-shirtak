@@ -5,35 +5,30 @@ import { useAddProductSize, useRemoveProductSize } from "./api";
 import { DataTable } from "../../components/DataTable";
 import { Field, Input, PrimaryButton, Select, DangerButton } from "../../components/form";
 import { ApiError } from "../../lib/api-client";
+import { PrintAreaEditor, type PrintAreaValue } from "./PrintAreaEditor";
 
 interface ProductSizesSectionProps {
   productId: string;
   product: ProductDetailDto;
 }
 
-const MEASUREMENT_FIELDS: { key: keyof Omit<ProductSizeInput, "sizeId">; label: string }[] = [
-  { key: "printAreaFrontWidthCm", label: "Front print area width (cm)" },
-  { key: "printAreaFrontHeightCm", label: "Front print area height (cm)" },
-  { key: "printAreaFrontOffsetXCm", label: "Front print area offset X (cm)" },
-  { key: "printAreaFrontOffsetYCm", label: "Front print area offset Y (cm)" },
-  { key: "printAreaBackWidthCm", label: "Back print area width (cm)" },
-  { key: "printAreaBackHeightCm", label: "Back print area height (cm)" },
-  { key: "printAreaBackOffsetXCm", label: "Back print area offset X (cm)" },
-  { key: "printAreaBackOffsetYCm", label: "Back print area offset Y (cm)" },
+const BODY_MEASUREMENT_FIELDS: { key: keyof Pick<ProductSizeInput, "chestWidthCm" | "lengthCm" | "waistCm">; label: string }[] = [
   { key: "chestWidthCm", label: "Chest width (cm)" },
   { key: "lengthCm", label: "Garment length (cm)" },
   { key: "waistCm", label: "Waist width (cm)" },
 ];
 
+const DEFAULT_PRINT_AREA: PrintAreaValue = { widthCm: 30, heightCm: 35, offsetXCm: 0, offsetYCm: 15 };
+
 const EMPTY_MEASUREMENTS: Omit<ProductSizeInput, "sizeId"> = {
-  printAreaFrontWidthCm: 0,
-  printAreaFrontHeightCm: 0,
-  printAreaFrontOffsetXCm: 0,
-  printAreaFrontOffsetYCm: 0,
-  printAreaBackWidthCm: 0,
-  printAreaBackHeightCm: 0,
-  printAreaBackOffsetXCm: 0,
-  printAreaBackOffsetYCm: 0,
+  printAreaFrontWidthCm: DEFAULT_PRINT_AREA.widthCm,
+  printAreaFrontHeightCm: DEFAULT_PRINT_AREA.heightCm,
+  printAreaFrontOffsetXCm: DEFAULT_PRINT_AREA.offsetXCm,
+  printAreaFrontOffsetYCm: DEFAULT_PRINT_AREA.offsetYCm,
+  printAreaBackWidthCm: DEFAULT_PRINT_AREA.widthCm,
+  printAreaBackHeightCm: DEFAULT_PRINT_AREA.heightCm,
+  printAreaBackOffsetXCm: DEFAULT_PRINT_AREA.offsetXCm,
+  printAreaBackOffsetYCm: DEFAULT_PRINT_AREA.offsetYCm,
   chestWidthCm: 0,
   lengthCm: 0,
   waistCm: 0,
@@ -49,6 +44,20 @@ export function ProductSizesSection({ productId, product }: ProductSizesSectionP
   const [error, setError] = useState<string | null>(null);
 
   const availableSizes = (sizes ?? []).filter((s) => !product.sizes.some((ps) => ps.sizeId === s.id));
+  const previewColor = product.colors[0];
+
+  const frontPrintArea: PrintAreaValue = {
+    widthCm: measurements.printAreaFrontWidthCm,
+    heightCm: measurements.printAreaFrontHeightCm,
+    offsetXCm: measurements.printAreaFrontOffsetXCm,
+    offsetYCm: measurements.printAreaFrontOffsetYCm,
+  };
+  const backPrintArea: PrintAreaValue = {
+    widthCm: measurements.printAreaBackWidthCm,
+    heightCm: measurements.printAreaBackHeightCm,
+    offsetXCm: measurements.printAreaBackOffsetXCm,
+    offsetYCm: measurements.printAreaBackOffsetYCm,
+  };
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -78,13 +87,11 @@ export function ProductSizesSection({ productId, product }: ProductSizesSectionP
           { header: "Size", render: (row) => row.size.name },
           {
             header: "Front print area",
-            render: (row) =>
-              `${row.printAreaFront.widthCm}×${row.printAreaFront.heightCm}cm @ (${row.printAreaFront.offsetXCm}, ${row.printAreaFront.offsetYCm})`,
+            render: (row) => `${row.printAreaFront.widthCm}×${row.printAreaFront.heightCm}cm, ${row.printAreaFront.offsetYCm}cm from top`,
           },
           {
             header: "Back print area",
-            render: (row) =>
-              `${row.printAreaBack.widthCm}×${row.printAreaBack.heightCm}cm @ (${row.printAreaBack.offsetXCm}, ${row.printAreaBack.offsetYCm})`,
+            render: (row) => `${row.printAreaBack.widthCm}×${row.printAreaBack.heightCm}cm, ${row.printAreaBack.offsetYCm}cm from top`,
           },
           { header: "Chest (cm)", render: (row) => row.chestWidthCm },
           { header: "Length (cm)", render: (row) => row.lengthCm },
@@ -115,8 +122,45 @@ export function ProductSizesSection({ productId, product }: ProductSizesSectionP
             </Select>
           </Field>
         </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {MEASUREMENT_FIELDS.map(({ key, label }) => (
+        {!previewColor && (
+          <p className="mb-3 text-xs text-ink/50">
+            Add a color with mockup photos above for a live preview here — the print area still works without one.
+          </p>
+        )}
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          <PrintAreaEditor
+            label="Front print area"
+            garmentType={product.garmentType}
+            backgroundImageUrl={previewColor?.frontImageUrl}
+            value={frontPrintArea}
+            onChange={(next) =>
+              setMeasurements((m) => ({
+                ...m,
+                printAreaFrontWidthCm: next.widthCm,
+                printAreaFrontHeightCm: next.heightCm,
+                printAreaFrontOffsetXCm: next.offsetXCm,
+                printAreaFrontOffsetYCm: next.offsetYCm,
+              }))
+            }
+          />
+          <PrintAreaEditor
+            label="Back print area"
+            garmentType={product.garmentType}
+            backgroundImageUrl={previewColor?.backImageUrl}
+            value={backPrintArea}
+            onChange={(next) =>
+              setMeasurements((m) => ({
+                ...m,
+                printAreaBackWidthCm: next.widthCm,
+                printAreaBackHeightCm: next.heightCm,
+                printAreaBackOffsetXCm: next.offsetXCm,
+                printAreaBackOffsetYCm: next.offsetYCm,
+              }))
+            }
+          />
+        </div>
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {BODY_MEASUREMENT_FIELDS.map(({ key, label }) => (
             <Field key={key} label={label}>
               <Input
                 type="number"

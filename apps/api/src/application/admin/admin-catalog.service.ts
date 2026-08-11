@@ -114,7 +114,7 @@ export class AdminCatalogService {
     return this.sizes.listAll();
   }
   createSize(input: CreateSizeInput): Promise<SizeDto> {
-    return this.sizes.create(input);
+    return this.sizes.create({ name: input.name });
   }
   deleteSize(id: string): Promise<void> {
     return this.sizes.delete(id);

@@ -58,8 +58,10 @@ export class PrismaSizeRepository implements ISizeRepository {
   findById(id: string): Promise<Size | null> {
     return this.db.size.findUnique({ where: { id } });
   }
-  create(input: Omit<Size, "id">): Promise<Size> {
-    return this.db.size.create({ data: input });
+  async create(input: Omit<Size, "id" | "sortOrder">): Promise<Size> {
+    const { _max } = await this.db.size.aggregate({ _max: { sortOrder: true } });
+    const sortOrder = (_max.sortOrder ?? -1) + 1;
+    return this.db.size.create({ data: { ...input, sortOrder } });
   }
   update(id: string, input: Partial<Omit<Size, "id">>): Promise<Size> {
     return this.db.size.update({ where: { id }, data: input });

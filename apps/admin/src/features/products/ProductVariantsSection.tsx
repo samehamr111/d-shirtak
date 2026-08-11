@@ -129,8 +129,21 @@ export function ProductVariantsSection({ productId, product }: ProductVariantsSe
       </form>
       {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
       {(product.colors.length === 0 || product.sizes.length === 0) && (
-        <p className="mt-2 text-sm text-ink/50">Add at least one color and one size before creating variants.</p>
+        <p className="mt-2 text-sm text-ink/50">
+          {product.colors.length === 0 && product.sizes.length === 0
+            ? "This product has no colors or sizes yet — add at least one of each above (a color needs front and back mockup photos) before you can create a variant."
+            : product.colors.length === 0
+              ? "This product has no colors yet — add one above (front and back mockup photos required) before you can create a variant."
+              : "This product has no sizes yet — add one above before you can create a variant."}
+        </p>
       )}
+      {product.colors.length > 0 &&
+        product.sizes.length > 0 &&
+        product.variants.length === 0 && (
+          <p className="mt-2 text-sm text-amber-600">
+            No variants yet — until you add at least one below, this product will show as sold out on the storefront.
+          </p>
+        )}
     </section>
   );
 }

@@ -20,7 +20,8 @@ export interface IColorRepository {
 export interface ISizeRepository {
   listAll(): Promise<Size[]>;
   findById(id: string): Promise<Size | null>;
-  create(input: Omit<Size, "id">): Promise<Size>;
+  /** sortOrder is always assigned server-side (next in sequence) — never trust a caller-supplied value on create. */
+  create(input: Omit<Size, "id" | "sortOrder">): Promise<Size>;
   update(id: string, input: Partial<Omit<Size, "id">>): Promise<Size>;
   delete(id: string): Promise<void>;
 }

@@ -4,7 +4,7 @@ import { Container } from "../components/ui/Container";
 import { Button } from "../components/ui/Button";
 import { Field, Input } from "../components/ui/Field";
 import { useAuth } from "../features/auth/auth-context";
-import { ApiError } from "../lib/api-client";
+import { describeError } from "../lib/errors";
 
 export function SignupPage() {
   const { signup } = useAuth();
@@ -23,7 +23,7 @@ export function SignupPage() {
       await signup({ username, email, password });
       navigate("/account/orders", { replace: true });
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Something went wrong. Try again.");
+      setError(describeError(err));
     } finally {
       setLoading(false);
     }

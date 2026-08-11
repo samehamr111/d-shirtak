@@ -8,6 +8,7 @@ import { Badge } from "../components/ui/Badge";
 import { useProduct } from "../features/catalog/catalog-api";
 import { useAddToCart } from "../features/cart/cart-api";
 import { useAuth } from "../features/auth/auth-context";
+import { describeError } from "../lib/errors";
 
 export function ProductPage() {
   const { slug } = useParams();
@@ -20,7 +21,7 @@ export function ProductPage() {
   const [sizeId, setSizeId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [side, setSide] = useState<"front" | "back">("front");
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ text: string; isError: boolean } | null>(null);
 
   const activeColorId = colorId ?? product?.colors[0]?.colorId ?? null;
   const activeSizeId = sizeId ?? product?.sizes[0]?.sizeId ?? null;
@@ -47,9 +48,9 @@ export function ProductPage() {
     setMessage(null);
     try {
       await addToCart.mutateAsync({ productVariantId: variant.id, quantity });
-      setMessage("Added to your cart.");
-    } catch {
-      setMessage("Couldn't add that to your cart.");
+      setMessage({ text: "Added to your cart.", isError: false });
+    } catch (err) {
+      setMessage({ text: describeError(err, "Couldn't add that to your cart."), isError: true });
     }
   }
 
@@ -66,7 +67,7 @@ export function ProductPage() {
                     : activeColor.modelBackImageUrl ?? activeColor.backImageUrl
                 }
                 alt={`${product.name} ${side}`}
-                className="h-full w-full object-cover"
+                className="h-full w-full object-contain"
               />
             )}
           </div>
@@ -179,10 +180,18 @@ export function ProductPage() {
               disabled={!variant || variant.stockQuantity === 0 || addToCart.isPending}
               onClick={handleAddToCart}
             >
-              {variant && variant.stockQuantity === 0 ? "Out of Stock" : "Add Plain to Cart"}
+              {variant && variant.stockQuantity === 0
+                ? "Out of Stock"
+                : product.isCustomizable
+                  ? "Add Blank to Cart"
+                  : "Add to Cart"}
             </Button>
           </div>
-          {message && <p className="mt-3 text-sm font-medium text-brand-600">{message}</p>}
+          {message && (
+            <p className={`mt-3 text-sm font-medium ${message.isError ? "text-red-600" : "text-brand-600"}`}>
+              {message.text}
+            </p>
+          )}
 
           {product.sizes.find((s) => s.sizeId === activeSizeId) && (
             <div className="mt-10 rounded-2xl bg-ink/5 p-5 text-sm text-ink/70">

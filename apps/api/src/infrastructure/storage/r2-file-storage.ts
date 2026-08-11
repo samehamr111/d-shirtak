@@ -53,6 +53,8 @@ export class R2FileStorage implements IFileStorage {
         Key: relativePath,
         Body: buffer,
         ContentType: contentTypeFor(ext),
+        // Every upload gets a fresh random key and is never overwritten -- safe to cache forever.
+        CacheControl: "public, max-age=31536000, immutable",
       }),
     );
 

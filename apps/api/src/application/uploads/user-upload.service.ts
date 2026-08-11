@@ -10,19 +10,19 @@ export class UserUploadService {
     private readonly fileStorage: IFileStorage,
   ) {}
 
-  async track(userId: string, file: { buffer: Buffer; originalName: string }): Promise<UserUploadDto> {
+  async track(userId: string | null, file: { buffer: Buffer; originalName: string }): Promise<UserUploadDto> {
     const saved = await this.fileStorage.saveBuffer("user-uploads", file.originalName, file.buffer);
     const created = await this.userUploads.create({
       userId,
       imageUrl: saved.url,
       originalName: file.originalName,
     });
-    const uploader = await this.users.findById(userId);
+    const uploader = userId ? await this.users.findById(userId) : null;
     return {
       id: created.id,
       imageUrl: created.imageUrl,
       originalName: created.originalName,
-      uploaderEmail: uploader?.email ?? "unknown",
+      uploaderEmail: uploader?.email ?? "Guest",
       promoted: false,
       createdAt: created.createdAt.toISOString(),
     };

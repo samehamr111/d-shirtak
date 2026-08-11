@@ -4,7 +4,7 @@ import { Container } from "../components/ui/Container";
 import { Button } from "../components/ui/Button";
 import { Field, Input } from "../components/ui/Field";
 import { useAuth } from "../features/auth/auth-context";
-import { ApiError } from "../lib/api-client";
+import { describeError } from "../lib/errors";
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -24,7 +24,7 @@ export function LoginPage() {
       const from = (location.state as { from?: { pathname: string; search: string } } | null)?.from;
       navigate(from ? `${from.pathname}${from.search}` : "/account/orders", { replace: true });
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Something went wrong. Try again.");
+      setError(describeError(err));
     } finally {
       setLoading(false);
     }

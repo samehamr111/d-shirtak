@@ -28,7 +28,9 @@ export function LoginPage() {
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.status === 401 ? "Invalid email or password." : err.message);
-      } else if (err instanceof Error) {
+      } else if (err instanceof TypeError && /fetch/i.test(err.message)) {
+        setError("Couldn't reach the server. Check your connection and try again.");
+      } else if (err instanceof Error && err.message) {
         setError(err.message);
       } else {
         setError("Something went wrong. Please try again.");

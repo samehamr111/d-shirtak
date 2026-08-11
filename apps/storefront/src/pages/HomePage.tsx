@@ -31,7 +31,10 @@ export function HomePage() {
   const { data: designAssets } = useDesignAssets();
   const featured = products?.slice(0, 4);
   const gallery = designAssets?.slice(0, 8);
-  const [heroA, heroB] = products ?? [];
+  // Products land in the catalog before a color/mockup is added to them, which leaves
+  // thumbnailUrl empty -- skip those here so the hero doesn't blink between showing and
+  // hiding a card as newly-created, not-yet-photographed products rotate through.
+  const [heroA, heroB] = products?.filter((p) => p.thumbnailUrl) ?? [];
 
   return (
     <div className="overflow-x-clip">

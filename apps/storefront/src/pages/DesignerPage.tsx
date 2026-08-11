@@ -12,7 +12,8 @@ import { useAuth } from "../features/auth/auth-context";
 import { Container } from "../components/ui/Container";
 import { Button } from "../components/ui/Button";
 import { PageSpinner } from "../components/ui/Spinner";
-import { api, ApiError } from "../lib/api-client";
+import { api } from "../lib/api-client";
+import { describeError } from "../lib/errors";
 
 type Side = "front" | "back";
 type Tab = "garment" | "design" | "text";
@@ -127,7 +128,11 @@ export function DesignerPage() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      if (typeof reader.result === "string") activeCanvasRef.current?.addImageFromUrl(reader.result, false);
+      if (typeof reader.result === "string") {
+        activeCanvasRef.current
+          ?.addImageFromUrl(reader.result, false)
+          .catch(() => setError("Couldn't add that image to the canvas. Try a different file."));
+      }
     };
     reader.readAsDataURL(file);
     e.target.value = "";
@@ -193,7 +198,7 @@ export function DesignerPage() {
       await addToCart.mutateAsync({ productVariantId: variant.id, quantity: 1, frontDesignId, backDesignId });
       navigate("/cart");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Couldn't save your design. Try again.");
+      setError(describeError(err, "Couldn't save your design. Try again."));
     } finally {
       setBusy(false);
     }
@@ -228,6 +233,7 @@ export function DesignerPage() {
               backgroundUrl={activeColor?.frontImageUrl}
               printArea={activeSize?.printAreaFront}
               onSelectionChange={setSelection}
+              onBackgroundError={() => setError("Couldn't load the garment image for this color. Try picking a different color or refreshing the page.")}
             />
             <SideCanvas
               ref={backRef}
@@ -235,6 +241,7 @@ export function DesignerPage() {
               backgroundUrl={activeColor?.backImageUrl}
               printArea={activeSize?.printAreaBack}
               onSelectionChange={setSelection}
+              onBackgroundError={() => setError("Couldn't load the garment image for this color. Try picking a different color or refreshing the page.")}
             />
             <button
               type="button"
@@ -379,7 +386,11 @@ export function DesignerPage() {
                   {designAssets?.map((asset) => (
                     <button
                       key={asset.id}
-                      onClick={() => activeCanvasRef.current?.addImageFromUrl(asset.imageUrl, true)}
+                      onClick={() =>
+                        activeCanvasRef.current
+                          ?.addImageFromUrl(asset.imageUrl, true)
+                          .catch(() => setError("Couldn't add that design to the canvas. Try again."))
+                      }
                       className="aspect-square overflow-hidden rounded-xl border border-ink/10 bg-white/70 p-2 transition-transform hover:scale-105"
                       title={asset.name}
                     >
