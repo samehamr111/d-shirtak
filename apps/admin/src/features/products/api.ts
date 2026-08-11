@@ -16,9 +16,11 @@ export function useProduct(id: string | undefined) {
   });
 }
 
-function invalidateProduct(queryClient: ReturnType<typeof useQueryClient>, id?: string) {
+// Invalidating ["products"] alone already matches every query keyed under it by prefix --
+// including ["products", id] -- so a second, separate call for the id would just invalidate
+// (and refetch) the same detail query a second time.
+function invalidateProduct(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.invalidateQueries({ queryKey: ["products"] });
-  if (id) queryClient.invalidateQueries({ queryKey: ["products", id] });
 }
 
 export function useCreateProduct() {
@@ -33,7 +35,7 @@ export function useUpdateProduct(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: Partial<ProductInput>) => api.patch<AdminProductDetailDto>(`${BASE}/${id}`, input),
-    onSuccess: () => invalidateProduct(queryClient, id),
+    onSuccess: () => invalidateProduct(queryClient),
   });
 }
 
@@ -49,7 +51,7 @@ export function useAddProductColor(productId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (form: FormData) => api.postForm<AdminProductDetailDto>(`${BASE}/${productId}/colors`, form),
-    onSuccess: () => invalidateProduct(queryClient, productId),
+    onSuccess: () => invalidateProduct(queryClient),
   });
 }
 
@@ -57,7 +59,7 @@ export function useRemoveProductColor(productId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (productColorId: string) => api.delete<AdminProductDetailDto>(`${BASE}/${productId}/colors/${productColorId}`),
-    onSuccess: () => invalidateProduct(queryClient, productId),
+    onSuccess: () => invalidateProduct(queryClient),
   });
 }
 
@@ -66,7 +68,7 @@ export function useUpdateProductColorModelImages(productId: string) {
   return useMutation({
     mutationFn: ({ productColorId, form }: { productColorId: string; form: FormData }) =>
       api.patchForm<AdminProductDetailDto>(`${BASE}/${productId}/colors/${productColorId}/model-images`, form),
-    onSuccess: () => invalidateProduct(queryClient, productId),
+    onSuccess: () => invalidateProduct(queryClient),
   });
 }
 
@@ -74,7 +76,7 @@ export function useAddProductSize(productId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: ProductSizeInput) => api.post<AdminProductDetailDto>(`${BASE}/${productId}/sizes`, input),
-    onSuccess: () => invalidateProduct(queryClient, productId),
+    onSuccess: () => invalidateProduct(queryClient),
   });
 }
 
@@ -83,7 +85,7 @@ export function useUpdateProductSize(productId: string) {
   return useMutation({
     mutationFn: ({ productSizeId, input }: { productSizeId: string; input: Partial<ProductSizeInput> }) =>
       api.patch<AdminProductDetailDto>(`${BASE}/${productId}/sizes/${productSizeId}`, input),
-    onSuccess: () => invalidateProduct(queryClient, productId),
+    onSuccess: () => invalidateProduct(queryClient),
   });
 }
 
@@ -91,7 +93,7 @@ export function useRemoveProductSize(productId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (productSizeId: string) => api.delete<AdminProductDetailDto>(`${BASE}/${productId}/sizes/${productSizeId}`),
-    onSuccess: () => invalidateProduct(queryClient, productId),
+    onSuccess: () => invalidateProduct(queryClient),
   });
 }
 
@@ -99,7 +101,7 @@ export function useAddVariant(productId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: VariantStockInput) => api.post<AdminProductDetailDto>(`${BASE}/${productId}/variants`, input),
-    onSuccess: () => invalidateProduct(queryClient, productId),
+    onSuccess: () => invalidateProduct(queryClient),
   });
 }
 
@@ -108,7 +110,7 @@ export function useUpdateVariant(productId: string) {
   return useMutation({
     mutationFn: ({ variantId, input }: { variantId: string; input: Partial<VariantStockInput> }) =>
       api.patch<AdminProductDetailDto>(`${BASE}/${productId}/variants/${variantId}`, input),
-    onSuccess: () => invalidateProduct(queryClient, productId),
+    onSuccess: () => invalidateProduct(queryClient),
   });
 }
 
@@ -116,7 +118,7 @@ export function useRemoveVariant(productId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (variantId: string) => api.delete<AdminProductDetailDto>(`${BASE}/${productId}/variants/${variantId}`),
-    onSuccess: () => invalidateProduct(queryClient, productId),
+    onSuccess: () => invalidateProduct(queryClient),
   });
 }
 
@@ -134,6 +136,6 @@ export function useUpdateAnyVariant() {
       variantId: string;
       input: Partial<VariantStockInput>;
     }) => api.patch<AdminProductDetailDto>(`${BASE}/${productId}/variants/${variantId}`, input),
-    onSuccess: (_, { productId }) => invalidateProduct(queryClient, productId),
+    onSuccess: () => invalidateProduct(queryClient),
   });
 }
