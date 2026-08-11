@@ -1,0 +1,385 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+// SQL Server has no native enum support in Prisma, so these are plain strings, validated by
+// zod at the API boundary and cast to their literal-union type at the repository mapping layer:
+//   Role:          "CUSTOMER" | "ADMIN"
+//   FontLanguage:  "EN" | "AR"
+//   DesignSide:    "FRONT" | "BACK"
+//   OrderStatus:   "PENDING" | "CONFIRMED" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED"
+//   PaymentMethod: "COD"
+
+// ---------------------------------------------------------------------------
+// Identity
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(cuid())
+  username     String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("CUSTOMER")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  addresses     Address[]
+  refreshTokens RefreshToken[]
+  designs       Design[]       @relation("DesignOwner")
+  cartItems     CartItem[]
+  orders        Order[]
+  uploads       UserUpload[]
+
+  @@map("users")
+}
+
+model Address {
+  id         String   @id @default(cuid())
+  userId     String
+  label      String   @default("Home")
+  fullName   String
+  phone      String
+  line1      String
+  line2      String?
+  city       String
+  governorate String
+  postalCode String?
+  country    String   @default("Egypt")
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("addresses")
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("refresh_tokens")
+}
+
+// ---------------------------------------------------------------------------
+// Catalog
+// ---------------------------------------------------------------------------
+
+model Category {
+  id   String @id @default(cuid())
+  name String
+  slug String @unique
+
+  products Product[]
+
+  @@map("categories")
+}
+
+model Color {
+  id      String @id @default(cuid())
+  name    String
+  hexCode String
+
+  productColors ProductColor[]
+  variants      ProductVariant[]
+
+  @@map("colors")
+}
+
+model Size {
+  id        String @id @default(cuid())
+  name      String
+  sortOrder Int
+
+  productSizes ProductSize[]
+  variants     ProductVariant[]
+
+  @@map("sizes")
+}
+
+// ---------------------------------------------------------------------------
+// Store settings (singleton row, fixed id "singleton")
+// ---------------------------------------------------------------------------
+
+model StoreSettings {
+  id                        String  @id @default(cuid())
+  customizationSurchargeEgp Decimal @default(50) @db.Decimal(10, 2)
+
+  @@map("store_settings")
+}
+
+/// A generated ad-video render job. Rendering takes minutes, so this row tracks progress
+/// (PENDING -> RENDERING -> DONE|FAILED) for the admin UI to poll. specJson is a denormalized,
+/// already-resolved snapshot of the inputs (image URLs, script text) -- same "opaque blob"
+/// pattern as Design.canvasJson -- so the render step never needs to re-look-up catalog state.
+model VideoJob {
+  id           String   @id @default(cuid())
+  status       String   @default("PENDING")
+  specJson     String   @db.NVarChar(Max)
+  videoUrl     String?
+  errorMessage String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("video_jobs")
+}
+
+model Product {
+  id             String   @id @default(cuid())
+  categoryId     String
+  code           String   @unique
+  /// "TEE" | "HOODIE" (see GarmentType in @d-shirtak/shared) -- which torso-frame reference the
+  /// designer canvas + admin mockup tools use for this product.
+  garmentType    String   @default("TEE")
+  name           String
+  slug           String   @unique
+  description    String   @db.NVarChar(4000)
+  basePrice      Decimal  @db.Decimal(10, 2)
+  /// What this product cost to acquire/produce, per unit. Admin-only -- never exposed on the
+  /// public storefront API. Nullable: unknown for products created before this field existed.
+  costPrice      Decimal? @db.Decimal(10, 2)
+  /// "CUSTOMIZABLE" | "READY_PRINTED" (see ProductType in @d-shirtak/shared).
+  productType    String   @default("CUSTOMIZABLE")
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  category Category @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  colors   ProductColor[]
+  sizes    ProductSize[]
+  variants ProductVariant[]
+
+  @@map("products")
+}
+
+/// Per (product, color): the mockup images the designer canvas uses as its background.
+model ProductColor {
+  id                 String  @id @default(cuid())
+  productId          String
+  colorId            String
+  frontImageUrl      String
+  backImageUrl       String
+  /// On-model lifestyle shots, added after the color already exists. Null until generated.
+  modelFrontImageUrl String?
+  modelBackImageUrl  String?
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  color   Color   @relation(fields: [colorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([productId, colorId])
+  @@map("product_colors")
+}
+
+/// Per (product, size): print-area geometry + garment measurements. Lengths in cm.
+model ProductSize {
+  id        String @id @default(cuid())
+  productId String
+  sizeId    String
+
+  printAreaFrontWidthCm   Float
+  printAreaFrontHeightCm  Float
+  printAreaFrontOffsetXCm Float
+  printAreaFrontOffsetYCm Float
+  printAreaBackWidthCm    Float
+  printAreaBackHeightCm   Float
+  printAreaBackOffsetXCm  Float
+  printAreaBackOffsetYCm  Float
+
+  chestWidthCm Float
+  lengthCm     Float
+  waistCm      Float
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  size    Size    @relation(fields: [sizeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([productId, sizeId])
+  @@map("product_sizes")
+}
+
+/// The actual purchasable SKU: one (product, color, size) combination and its stock.
+model ProductVariant {
+  id             String   @id @default(cuid())
+  productId      String
+  colorId        String
+  sizeId         String
+  sku            String   @unique
+  stockQuantity  Int      @default(0)
+  priceOverride  Decimal? @db.Decimal(10, 2)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  color   Color   @relation(fields: [colorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  size    Size    @relation(fields: [sizeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  designs    Design[]
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+
+  @@unique([productId, colorId, sizeId])
+  @@map("product_variants")
+}
+
+// ---------------------------------------------------------------------------
+// Fonts & curated design library
+// ---------------------------------------------------------------------------
+
+model Font {
+  id         String @id @default(cuid())
+  name       String
+  language   String
+  fileUrl    String
+  fontFamily String
+
+  @@map("fonts")
+}
+
+model DesignCategory {
+  id   String @id @default(cuid())
+  name String
+
+  assets DesignAsset[]
+
+  @@map("design_categories")
+}
+
+model DesignAsset {
+  id               String @id @default(cuid())
+  name             String
+  imageUrl         String
+  designCategoryId String
+
+  designCategory DesignCategory @relation(fields: [designCategoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  promotedFrom   UserUpload?
+
+  @@map("design_assets")
+}
+
+/// A raw image a customer uploaded in the designer (or an admin uploaded for the model-shot
+/// tool), tracked so a good one can later be promoted into the curated DesignAsset library.
+model UserUpload {
+  id              String   @id @default(cuid())
+  userId          String
+  imageUrl        String
+  originalName    String?
+  promotedAssetId String?  @unique
+  createdAt       DateTime @default(now())
+
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  promotedAsset DesignAsset? @relation(fields: [promotedAssetId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("user_uploads")
+}
+
+// ---------------------------------------------------------------------------
+// Customer-created designs (immutable / write-once)
+// ---------------------------------------------------------------------------
+
+/// One side (front or back) of one customer's customization of one variant.
+/// Never mutated after creation -- editing produces a new row -- so CartItem/OrderItem
+/// can reference a designId forever without it changing under them.
+model Design {
+  id               String     @id @default(cuid())
+  ownerUserId      String
+  productVariantId String
+  side             String
+  canvasJson       String   @db.NVarChar(Max)
+  previewImageUrl  String
+  createdAt        DateTime @default(now())
+
+  owner   User           @relation("DesignOwner", fields: [ownerUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  variant ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  cartItemsFront  CartItem[]  @relation("CartItemFrontDesign")
+  cartItemsBack   CartItem[]  @relation("CartItemBackDesign")
+  orderItemsFront OrderItem[] @relation("OrderItemFrontDesign")
+  orderItemsBack  OrderItem[] @relation("OrderItemBackDesign")
+
+  @@map("designs")
+}
+
+// ---------------------------------------------------------------------------
+// Cart
+// ---------------------------------------------------------------------------
+
+model CartItem {
+  id               String   @id @default(cuid())
+  userId           String
+  productVariantId String
+  quantity         Int
+  frontDesignId    String?
+  backDesignId     String?
+  createdAt        DateTime @default(now())
+
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  variant ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  frontDesign Design? @relation("CartItemFrontDesign", fields: [frontDesignId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  backDesign  Design? @relation("CartItemBackDesign", fields: [backDesignId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("cart_items")
+}
+
+// ---------------------------------------------------------------------------
+// Orders
+// ---------------------------------------------------------------------------
+
+model Order {
+  id            String        @id @default(cuid())
+  orderNumber   String        @unique
+  userId        String
+  status        String @default("PENDING")
+  paymentMethod String @default("COD")
+
+  subtotal    Decimal @db.Decimal(10, 2)
+  shippingFee Decimal @db.Decimal(10, 2)
+  total       Decimal @db.Decimal(10, 2)
+
+  shipFullName    String
+  shipPhone       String
+  shipLine1       String
+  shipLine2       String?
+  shipCity        String
+  shipGovernorate String
+  shipPostalCode  String?
+  shipCountry     String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User        @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  items OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id               String  @id @default(cuid())
+  orderId          String
+  productVariantId String
+
+  productNameSnapshot String
+  colorNameSnapshot   String
+  sizeNameSnapshot    String
+  quantity            Int
+  unitPrice           Decimal @db.Decimal(10, 2)
+
+  frontDesignId String?
+  backDesignId  String?
+
+  order   Order          @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  variant ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  frontDesign Design? @relation("OrderItemFrontDesign", fields: [frontDesignId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  backDesign  Design? @relation("OrderItemBackDesign", fields: [backDesignId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("order_items")
+}
