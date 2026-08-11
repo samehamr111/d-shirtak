@@ -1,7 +1,6 @@
 import { NavLink } from "react-router-dom";
 import {
   Boxes,
-  Clapperboard,
   Images,
   LayoutDashboard,
   Shirt,
@@ -30,10 +29,6 @@ const NAV_GROUPS = [
   {
     label: "Sales",
     items: [{ to: "/orders", label: "Orders", end: false, icon: ShoppingCart }],
-  },
-  {
-    label: "Marketing",
-    items: [{ to: "/video-ads", label: "Video Ads", end: false, icon: Clapperboard }],
   },
 ] satisfies { label: string; items: { to: string; label: string; end: boolean; icon: LucideIcon }[] }[];
 

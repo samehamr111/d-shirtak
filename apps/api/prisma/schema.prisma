@@ -118,22 +118,6 @@ model StoreSettings {
   @@map("store_settings")
 }
 
-/// A generated ad-video render job. Rendering takes minutes, so this row tracks progress
-/// (PENDING -> RENDERING -> DONE|FAILED) for the admin UI to poll. specJson is a denormalized,
-/// already-resolved snapshot of the inputs (image URLs, script text) -- same "opaque blob"
-/// pattern as Design.canvasJson -- so the render step never needs to re-look-up catalog state.
-model VideoJob {
-  id           String   @id @default(cuid())
-  status       String   @default("PENDING")
-  specJson     String   @db.NVarChar(Max)
-  videoUrl     String?
-  errorMessage String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  @@map("video_jobs")
-}
-
 model Product {
   id             String   @id @default(cuid())
   categoryId     String

@@ -27,6 +27,3 @@ npm-debug.log*
 .idea/
 .DS_Store
 Thumbs.db
-
-# Remotion render cache
-apps/video-renderer/.remotion/

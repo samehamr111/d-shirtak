@@ -48,14 +48,6 @@ export const ProductType = {
 } as const;
 export type ProductType = (typeof ProductType)[keyof typeof ProductType];
 
-export const VideoJobStatus = {
-  PENDING: "PENDING",
-  RENDERING: "RENDERING",
-  DONE: "DONE",
-  FAILED: "FAILED",
-} as const;
-export type VideoJobStatus = (typeof VideoJobStatus)[keyof typeof VideoJobStatus];
-
 export const ORDER_STATUS_FLOW: OrderStatus[] = [
   OrderStatus.PENDING,
   OrderStatus.CONFIRMED,

@@ -1,4 +1,4 @@
-export type UploadCategory = "products" | "colors" | "fonts" | "assets" | "designs" | "user-uploads" | "videos";
+export type UploadCategory = "products" | "colors" | "fonts" | "assets" | "designs" | "user-uploads";
 
 export interface SavedFile {
   /** Publicly reachable URL, safe to store on an entity and hand to the frontend. */

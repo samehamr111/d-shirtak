@@ -9,7 +9,6 @@ import { AdminCatalogService } from "./admin/admin-catalog.service.js";
 import { AdminDesignLibraryService } from "./admin/admin-design-library.service.js";
 import { AdminOrderService } from "./admin/admin-order.service.js";
 import { UserUploadService } from "./uploads/user-upload.service.js";
-import { VideoAdService } from "./admin/video-ad.service.js";
 
 export const appServices = {
   auth: new AuthService(repositories.user, repositories.refreshToken, services.passwordHasher, services.tokenService),
@@ -62,5 +61,4 @@ export const appServices = {
   ),
   adminOrder: new AdminOrderService(repositories.order, repositories.design, repositories.productVariant, repositories.product),
   userUpload: new UserUploadService(repositories.userUpload, repositories.user, services.fileStorage),
-  videoAd: new VideoAdService(repositories.videoJob, repositories.product, repositories.designAsset, services.fileStorage),
 };

@@ -25,10 +25,11 @@ import { PrismaCartRepository } from "./prisma/repositories/cart.repository.pris
 import { PrismaOrderRepository } from "./prisma/repositories/order.repository.prisma.js";
 import { PrismaUserUploadRepository } from "./prisma/repositories/user-upload.repository.prisma.js";
 import { PrismaStoreSettingsRepository } from "./prisma/repositories/store-settings.repository.prisma.js";
-import { PrismaVideoJobRepository } from "./prisma/repositories/video-job.repository.prisma.js";
 import { LocalDiskFileStorage } from "./storage/local-disk-file-storage.js";
+import { R2FileStorage } from "./storage/r2-file-storage.js";
 import { BcryptPasswordHasher } from "./auth/bcrypt-password-hasher.js";
 import { JwtTokenService } from "./auth/jwt-token-service.js";
+import type { IFileStorage } from "../domain/ports/file-storage.port.js";
 
 export const repositories = {
   user: new PrismaUserRepository(prisma),
@@ -49,11 +50,25 @@ export const repositories = {
   order: new PrismaOrderRepository(prisma),
   userUpload: new PrismaUserUploadRepository(prisma),
   storeSettings: new PrismaStoreSettingsRepository(prisma),
-  videoJob: new PrismaVideoJobRepository(prisma),
 };
 
+// R2 kicks in the moment all four credentials are set; otherwise local disk (dev default).
+// Same IFileStorage contract either way -- nothing else in the app needs to know which one is live.
+function createFileStorage(): IFileStorage {
+  if (env.R2_ACCOUNT_ID && env.R2_ACCESS_KEY_ID && env.R2_SECRET_ACCESS_KEY && env.R2_BUCKET_NAME) {
+    return new R2FileStorage(
+      env.R2_ACCOUNT_ID,
+      env.R2_BUCKET_NAME,
+      env.R2_PUBLIC_BASE_URL ?? env.PUBLIC_UPLOADS_BASE_URL,
+      env.R2_ACCESS_KEY_ID,
+      env.R2_SECRET_ACCESS_KEY,
+    );
+  }
+  return new LocalDiskFileStorage(path.resolve(env.UPLOADS_DIR), env.PUBLIC_UPLOADS_BASE_URL);
+}
+
 export const services = {
-  fileStorage: new LocalDiskFileStorage(path.resolve(env.UPLOADS_DIR), env.PUBLIC_UPLOADS_BASE_URL),
+  fileStorage: createFileStorage(),
   passwordHasher: new BcryptPasswordHasher(),
   tokenService: new JwtTokenService(env.JWT_ACCESS_SECRET, env.JWT_ACCESS_TTL, env.JWT_REFRESH_TTL_DAYS),
 };

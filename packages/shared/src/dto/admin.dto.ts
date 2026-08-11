@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { FontLanguage, GarmentType, ProductType, VideoJobStatus } from "../enums.js";
+import { FontLanguage, GarmentType, ProductType } from "../enums.js";
 import type { ProductDetailDto } from "./catalog.dto.js";
 
 export const createCategorySchema = z.object({
@@ -102,28 +102,6 @@ export const updateStoreSettingsSchema = z.object({
   customizationSurchargeEgp: z.number().nonnegative(),
 });
 export type UpdateStoreSettingsInput = z.infer<typeof updateStoreSettingsSchema>;
-
-export const createVideoJobSchema = z
-  .object({
-    scriptText: z.string().min(1).max(2000),
-    productId: z.string().min(1).optional(),
-    colorId: z.string().min(1).optional(),
-    designAssetId: z.string().min(1).optional(),
-    imageUrls: z.array(z.string().min(1)).optional(),
-  })
-  .refine((v) => (v.productId && v.colorId) || (v.imageUrls && v.imageUrls.length > 0), {
-    message: "Provide a product + color, or at least one image URL",
-  });
-export type CreateVideoJobInput = z.infer<typeof createVideoJobSchema>;
-
-export interface VideoJobDto {
-  id: string;
-  status: VideoJobStatus;
-  productName: string;
-  videoUrl: string | null;
-  errorMessage: string | null;
-  createdAt: string;
-}
 
 /** Store-wide money summary for the admin Dashboard. Excludes cancelled orders. Cost/profit are
  *  computed from each product's *current* cost price (not a historical snapshot at sale time),
