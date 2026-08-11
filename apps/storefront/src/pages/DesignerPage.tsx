@@ -200,7 +200,7 @@ export function DesignerPage() {
 
   return (
     <Container className="py-8">
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink/[.07] pb-4.5">
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink/[.07] pb-4">
         <div>
           <Link to={`/shop/${product.slug}`} className="text-[12.5px] font-medium text-ink/50 hover:text-ink">
             ← Back to {product.name}
@@ -221,11 +221,11 @@ export function DesignerPage() {
         <div className="grid lg:grid-cols-[64px_320px_1fr]">
           {/* Canvas — first in the DOM so it appears first on mobile */}
           <div className="relative flex flex-col items-center justify-center gap-5 bg-[radial-gradient(circle_at_50%_36%,#f6f5f0_0%,#e9e7e1_100%)] p-9 lg:col-start-3 lg:row-start-1">
-            <div className="relative">
-              <div
-                className="relative w-full max-w-md touch-none overflow-hidden rounded-2xl bg-white shadow-[0_24px_42px_rgba(4,4,4,.15)] lg:max-w-[420px]"
-                style={{ aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}` }}
-              >
+            <div
+              className="relative w-full max-w-md touch-none lg:max-w-[420px]"
+              style={{ aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}` }}
+            >
+              <div className="absolute inset-0 overflow-hidden rounded-2xl bg-white shadow-[0_24px_42px_rgba(4,4,4,.15)]">
                 <SideCanvas
                   ref={frontRef}
                   visible={side === "front"}
@@ -273,7 +273,7 @@ export function DesignerPage() {
               <div className="absolute right-3.5 top-3.5 flex gap-1.5 rounded-full bg-white p-1.5 shadow-[0_6px_18px_rgba(0,0,0,.1)]">
                 <button
                   onClick={() => setSide("front")}
-                  className={`rounded-full px-4.5 py-2.5 text-xs font-semibold transition-colors ${
+                  className={`rounded-full px-4 py-2.5 text-xs font-semibold transition-colors ${
                     side === "front" ? "bg-ink text-paper" : "text-ink/55 hover:bg-ink/5"
                   }`}
                 >
@@ -281,7 +281,7 @@ export function DesignerPage() {
                 </button>
                 <button
                   onClick={() => setSide("back")}
-                  className={`rounded-full px-4.5 py-2.5 text-xs font-semibold transition-colors ${
+                  className={`rounded-full px-4 py-2.5 text-xs font-semibold transition-colors ${
                     side === "back" ? "bg-ink text-paper" : "text-ink/55 hover:bg-ink/5"
                   }`}
                 >
@@ -360,7 +360,7 @@ export function DesignerPage() {
 
             {tab === "design" && (
               <div className="space-y-5">
-                <label className="flex cursor-pointer flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-brand-500/60 bg-brand-500/[.06] p-5.5 text-center">
+                <label className="flex cursor-pointer flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-brand-500/60 bg-brand-500/[.06] p-5 text-center">
                   <Sparkle size={22} className="animate-twinkle text-brand-500" />
                   <span className="text-[13px] font-semibold text-brand-700">Upload your own art</span>
                   <span className="text-[11.5px] text-ink/50">PNG, JPG or WEBP</span>
@@ -496,7 +496,7 @@ export function DesignerPage() {
           </div>
         </div>
 
-        <div className="sticky bottom-0 z-10 flex items-center justify-end gap-4 border-t border-ink/[.08] bg-white px-6 py-4.5">
+        <div className="sticky bottom-0 z-10 flex items-center justify-end gap-4 border-t border-ink/[.08] bg-white px-6 py-4">
           {error && <p className="text-sm font-medium text-red-600">{error}</p>}
           <Button size="lg" className="animate-glow" disabled={!variant || busy} onClick={handleAddToCart}>
             {busy ? "Saving your design…" : `Add to Cart — EGP ${(variant?.price ?? product.basePrice).toFixed(0)}`}
