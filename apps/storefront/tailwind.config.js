@@ -27,6 +27,7 @@ export default {
       fontFamily: {
         display: ["'Bebas Neue'", "sans-serif"],
         sans: ["'Poppins'", "system-ui", "sans-serif"],
+        mono: ["'IBM Plex Mono'", "ui-monospace", "monospace"],
       },
       boxShadow: {
         pop: "0 12px 30px -12px rgb(0 0 0 / 0.35)",
@@ -45,11 +46,28 @@ export default {
           "0%, 100%": { transform: "translateY(0) rotate(var(--float-rotate, 0deg))" },
           "50%": { transform: "translateY(-14px) rotate(var(--float-rotate, 0deg))" },
         },
+        twinkle: {
+          "0%, 100%": { opacity: ".25", transform: "scale(.7)" },
+          "50%": { opacity: "1", transform: "scale(1.15)" },
+        },
+        trail: {
+          "0%": { transform: "translate(-10%,60%) rotate(-8deg)", opacity: "0" },
+          "15%": { opacity: "1" },
+          "85%": { opacity: "1" },
+          "100%": { transform: "translate(105%,-25%) rotate(-8deg)", opacity: "0" },
+        },
+        glow: {
+          "0%, 100%": { boxShadow: "0 10px 30px rgb(0 201 122 / 0.35)" },
+          "50%": { boxShadow: "0 14px 46px rgb(0 201 122 / 0.62)" },
+        },
       },
       animation: {
         marquee: "marquee 18s linear infinite",
         "fade-up": "fade-up 0.7s cubic-bezier(0.16,1,0.3,1) both",
         float: "float 6s ease-in-out infinite",
+        twinkle: "twinkle 2s ease-in-out infinite",
+        trail: "trail 4.2s ease-in-out infinite",
+        glow: "glow 3s ease-in-out infinite",
       },
     },
   },

@@ -4,26 +4,15 @@ import { Container } from "../components/ui/Container";
 import { LinkButton } from "../components/ui/LinkButton";
 import { ProductCard } from "../components/ProductCard";
 import { Reveal } from "../components/ui/Reveal";
+import { ShirtMark, Sparkle } from "../components/ui/ShirtMark";
 import { useDesignAssets, useProducts } from "../features/catalog/catalog-api";
 
-const marqueeWords = ["DESIGN IT", "PRINT IT", "WEAR IT", "REPEAT"];
+const marqueeWords = ["YOUR ART HERE", "NO MINIMUMS", "CASH ON DELIVERY", "BE YOUR OWN DESIGNER"];
 
 const steps = [
-  {
-    n: "01",
-    title: "Pick a blank",
-    body: "Choose a hoodie or tee, then your color and size — stock updates live.",
-  },
-  {
-    n: "02",
-    title: "Make it yours",
-    body: "Upload your own art or type it out in Arabic or English. Drag, resize, layer it up.",
-  },
-  {
-    n: "03",
-    title: "We print, you wear",
-    body: "Confirm the mockup, checkout with cash on delivery, and we get to work.",
-  },
+  { n: "01", title: "Upload or draw", body: "Bring a file, or build it with text and the design library — no software to learn." },
+  { n: "02", title: "See it live", body: "Swap garment color, flip front to back, check exactly where the print box sits." },
+  { n: "03", title: "We print, you wear", body: "Confirm the mockup, checkout with cash on delivery, and we get to work.", accent: true },
 ];
 
 export function HomePage() {
@@ -31,149 +20,169 @@ export function HomePage() {
   const { data: designAssets } = useDesignAssets();
   const featured = products?.slice(0, 4);
   const gallery = designAssets?.slice(0, 8);
-  // Products land in the catalog before a color/mockup is added to them, which leaves
-  // thumbnailUrl empty -- skip those here so the hero doesn't blink between showing and
-  // hiding a card as newly-created, not-yet-photographed products rotate through.
-  const [heroA, heroB] = products?.filter((p) => p.thumbnailUrl) ?? [];
+  const hero = products?.find((p) => p.thumbnailUrl);
 
   return (
     <div className="overflow-x-clip">
-      <section
-        className="relative overflow-hidden bg-ink text-paper"
-        style={{ clipPath: "polygon(0 0, 100% 0, 100% 94%, 0 100%)" }}
-      >
-        <div
-          className="pointer-events-none absolute -right-32 -top-40 h-[34rem] w-[34rem] rounded-full bg-brand-500/25 blur-3xl"
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -left-24 bottom-0 h-80 w-80 rounded-full bg-pop-500/20 blur-3xl"
-          aria-hidden
-        />
-
-        <Container className="relative grid gap-12 py-20 sm:py-28 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
-          <div>
-            <motion.p
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="text-xs font-semibold uppercase tracking-[0.35em] text-brand-400"
-            >
-              Custom apparel, done right
-            </motion.p>
-            <h1 className="mt-4 font-display text-7xl leading-[0.9] sm:text-8xl lg:text-[7rem]">
-              {["Wear what's", "actually yours."].map((line, i) => (
-                <motion.span
-                  key={line}
-                  initial={{ opacity: 0, y: 40 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.7, delay: 0.15 + i * 0.12, ease: [0.16, 1, 0.3, 1] }}
-                  className={`block ${i === 1 ? "text-brand-500" : ""}`}
-                >
-                  {line}
-                </motion.span>
-              ))}
-            </h1>
-            <motion.p
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.5 }}
-              className="mt-6 max-w-lg text-lg text-paper/70"
-            >
-              Blank hoodies and tees, a live design canvas, and a print team that ships it. Upload your art, drop in
-              text, pick from our library — then hit checkout.
-            </motion.p>
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.65 }}
-              className="mt-10 flex flex-wrap gap-4"
-            >
-              <LinkButton to="/design" size="lg">
-                Start Designing
-              </LinkButton>
-              <LinkButton
-                to="/shop"
-                variant="outline"
-                size="lg"
-                className="border-paper/30 text-paper hover:bg-paper hover:text-ink"
-              >
-                Shop Blanks
-              </LinkButton>
-            </motion.div>
-          </div>
-
-          <div className="relative hidden h-[26rem] lg:block" aria-hidden={!heroA}>
-            {heroA?.thumbnailUrl && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.85, rotate: -8 }}
-                animate={{ opacity: 1, scale: 1, rotate: -6 }}
-                transition={{ duration: 0.8, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                style={{ ["--float-rotate" as string]: "-6deg" }}
-                className="absolute left-6 top-4 w-56 animate-float rounded-2xl bg-white p-3 shadow-2xl"
-              >
-                <img src={heroA.thumbnailUrl} alt={heroA.name} className="aspect-[4/5] w-full rounded-xl object-cover" />
-                <p className="mt-2 text-center text-xs font-semibold text-ink/70">{heroA.name}</p>
-              </motion.div>
-            )}
-            {heroB?.thumbnailUrl && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.85, rotate: 10 }}
-                animate={{ opacity: 1, scale: 1, rotate: 8 }}
-                transition={{ duration: 0.8, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                style={{ ["--float-rotate" as string]: "8deg" }}
-                className="absolute right-2 top-24 w-48 animate-float rounded-2xl bg-white p-3 shadow-2xl [animation-delay:1.5s]"
-              >
-                <img src={heroB.thumbnailUrl} alt={heroB.name} className="aspect-[4/5] w-full rounded-xl object-cover" />
-                <p className="mt-2 text-center text-xs font-semibold text-ink/70">EGP {heroB.fromPrice.toFixed(0)}</p>
-              </motion.div>
-            )}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.9 }}
-              className="absolute bottom-8 right-16 flex h-24 w-24 rotate-6 items-center justify-center rounded-full bg-brand-500 text-center font-display text-sm leading-tight text-white shadow-xl"
-            >
-              Design
+      <section className="relative overflow-hidden">
+        <Container className="grid gap-10 py-8 sm:py-12 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+          <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}>
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-brand-500/15 px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-brand-700">
+              Be Your Own Designer.
+            </div>
+            <h1 className="font-display text-[clamp(3.2rem,7vw,7rem)] leading-[0.86] text-ink text-balance">
+              Design it.
               <br />
-              your own
-            </motion.div>
-          </div>
+              We print it.
+              <br />
+              <span className="text-brand-500">You wear it.</span>
+            </h1>
+            <p className="mt-6 max-w-md text-lg font-light text-ink/66">
+              Put your art, your words, your whole idea on a shirt. Preview it live, order one or a hundred, and we
+              print it ourselves.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-3.5">
+              <LinkButton to="/design" size="lg" className="animate-glow">
+                Start Designing →
+              </LinkButton>
+              <LinkButton to="/shop?type=READY_PRINTED" variant="outline" size="lg">
+                Browse ready-printed
+              </LinkButton>
+            </div>
+            <div className="mt-9 flex gap-6 font-mono text-xs text-ink/50">
+              <span>No minimum order</span>
+              <span>Free design tool</span>
+              <span>Cash on delivery</span>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.94 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.7, delay: 0.15 }}
+            className="relative rounded-[20px] bg-white p-6 shadow-[0_20px_50px_rgba(4,4,4,0.08)]"
+          >
+            <div className="relative flex h-[420px] items-center justify-center overflow-hidden rounded-2xl bg-[repeating-linear-gradient(135deg,#f3f2ee_0px,#f3f2ee_10px,#eceae4_10px,#eceae4_20px)]">
+              {hero?.thumbnailUrl ? (
+                <img src={hero.thumbnailUrl} alt={hero.name} className="h-full w-full object-cover" />
+              ) : (
+                <ShirtMark size={200} className="animate-float text-brand-500" />
+              )}
+              <div className="pointer-events-none absolute inset-0 animate-trail">
+                <Sparkle size={90} className="text-white/95" />
+              </div>
+            </div>
+            {hero && (
+              <div className="mt-4 flex items-center justify-between">
+                <div>
+                  <div className="font-display text-2xl uppercase tracking-wide text-ink">{hero.name}</div>
+                  <div className="mt-1 text-sm text-ink/55">
+                    {hero.isCustomizable ? "Customizable · your print" : "Ready-printed"}
+                  </div>
+                </div>
+                <div className="text-xl font-semibold text-brand-700">EGP {hero.fromPrice.toFixed(0)}</div>
+              </div>
+            )}
+          </motion.div>
         </Container>
 
-        <div className="relative border-t border-paper/10 py-4">
-          <div className="flex animate-marquee gap-12 whitespace-nowrap text-sm font-semibold uppercase tracking-[0.3em] text-paper/40">
+        <div className="border-y border-ink/[.07] bg-white py-4">
+          <div className="flex animate-marquee gap-11 whitespace-nowrap">
             {[...marqueeWords, ...marqueeWords, ...marqueeWords].map((word, i) => (
-              <span key={i} className={i % 4 === 1 ? "text-brand-400" : ""}>
+              <span key={i} className="flex items-center gap-11 font-display text-3xl tracking-wide text-brand-500">
                 {word}
+                <span className="text-ink/25">◆</span>
               </span>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="py-24">
+      <section className="py-16">
         <Container>
-          <Reveal className="mb-10 flex items-end justify-between">
-            <h2 className="font-display text-5xl">Fresh off the rack</h2>
-            <LinkButton to="/shop" variant="ghost" size="sm">
-              View all →
-            </LinkButton>
+          <Reveal className="mb-6 flex items-baseline justify-between">
+            <h2 className="font-display text-5xl tracking-wide">START HERE</h2>
+            <span className="font-mono text-xs text-ink/50">three ways in — one of them is yours</span>
           </Reveal>
-          <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-4">
-            {featured?.map((product, index) => (
-              <ProductCard key={product.id} product={product} index={index} />
+          <div className="grid gap-5 lg:grid-cols-[1.2fr_1fr_1fr]">
+            <Link
+              to="/design"
+              className="group flex min-h-[280px] flex-col justify-between rounded-2xl bg-ink p-8 transition-transform hover:-translate-y-2"
+            >
+              <div className="flex items-start justify-between">
+                <ShirtMark size={34} className="text-brand-500" />
+                <span className="rounded-full bg-brand-500 px-2.5 py-1.5 text-[10px] font-semibold tracking-wide text-ink">
+                  MAIN PATH
+                </span>
+              </div>
+              <div>
+                <div className="font-display text-5xl leading-[0.9] text-white">
+                  DESIGN
+                  <br />
+                  YOUR OWN
+                </div>
+                <p className="mt-3.5 max-w-[300px] text-sm text-white/62">
+                  Open the editor, drop in artwork or type, see it on the shirt instantly.
+                </p>
+                <span className="mt-5 inline-block rounded-full bg-brand-500 px-6 py-3.5 text-sm font-semibold text-ink">
+                  Start Designing →
+                </span>
+              </div>
+            </Link>
+
+            <Link
+              to="/shop?type=READY_PRINTED"
+              className="group flex flex-col justify-between rounded-2xl border border-ink/[.08] bg-white p-6 transition-transform hover:-translate-y-2"
+            >
+              <div className="flex h-[120px] items-end rounded-xl bg-[repeating-linear-gradient(135deg,#f3f2ee_0px,#f3f2ee_10px,#eceae4_10px,#eceae4_20px)] p-2.5 font-mono text-[10px] text-ink/40">
+                printed range
+              </div>
+              <div>
+                <div className="mt-4 font-display text-[34px] leading-[0.95]">READY-PRINTED</div>
+                <p className="mt-2 text-[13px] text-ink/58">Artist drops, ship straight away.</p>
+                <span className="mt-3.5 inline-block text-sm font-semibold text-brand-700">Shop the drop →</span>
+              </div>
+            </Link>
+
+            <Link
+              to="/shop"
+              className="group flex flex-col justify-between rounded-2xl border border-ink/[.08] bg-white p-6 transition-transform hover:-translate-y-2"
+            >
+              <div className="flex h-[120px] items-end rounded-xl bg-[repeating-linear-gradient(135deg,#f3f2ee_0px,#f3f2ee_10px,#eceae4_10px,#eceae4_20px)] p-2.5 font-mono text-[10px] text-ink/40">
+                the full rack
+              </div>
+              <div>
+                <div className="mt-4 font-display text-[34px] leading-[0.95]">SHOP ALL</div>
+                <p className="mt-2 text-[13px] text-ink/58">Every blank and every drop, in one place.</p>
+                <span className="mt-3.5 inline-block text-sm font-semibold text-brand-700">Browse the rack →</span>
+              </div>
+            </Link>
+          </div>
+        </Container>
+      </section>
+
+      <section className="py-4">
+        <Container>
+          <div className="grid gap-5 sm:grid-cols-3">
+            {steps.map((step, i) => (
+              <Reveal key={step.n} delay={i * 0.1}>
+                <div className="rounded-2xl border border-ink/[.07] bg-white p-6">
+                  <div className={`font-display text-4xl ${step.accent ? "text-pop-500" : "text-brand-500"}`}>{step.n}</div>
+                  <h3 className="mt-2.5 mb-2 text-base font-semibold">{step.title}</h3>
+                  <p className="text-[13px] leading-relaxed text-ink/58">{step.body}</p>
+                </div>
+              </Reveal>
             ))}
           </div>
         </Container>
       </section>
 
       {gallery && gallery.length > 0 && (
-        <section className="bg-brand-50/60 py-24">
+        <section className="py-20">
           <Container>
             <Reveal className="mb-10 text-center">
-              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-brand-600">Design inspiration</p>
-              <h2 className="mt-3 font-display text-5xl">Prints people are starting with</h2>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-700">Design inspiration</p>
+              <h2 className="mt-3 font-display text-5xl tracking-wide">Prints people are starting with</h2>
               <p className="mx-auto mt-3 max-w-lg text-ink/60">
                 A few favorites from our library — drop one straight into the canvas, then make it yours.
               </p>
@@ -201,58 +210,23 @@ export function HomePage() {
         </section>
       )}
 
-      <section className="relative overflow-hidden bg-ink py-24 text-paper">
-        <p
-          className="pointer-events-none absolute -top-6 left-1/2 -translate-x-1/2 select-none font-display text-[14rem] leading-none text-paper/[0.03] sm:text-[20rem]"
-          aria-hidden
-        >
-          HOW
-        </p>
-        <Container className="relative">
-          <Reveal>
-            <h2 className="font-display text-5xl">How it works</h2>
-          </Reveal>
-          <div className="relative mt-14 grid gap-10 sm:grid-cols-3">
-            <div
-              className="pointer-events-none absolute top-8 hidden h-px w-full bg-gradient-to-r from-transparent via-paper/15 to-transparent sm:block"
-              aria-hidden
-            />
-            {steps.map((step, i) => (
-              <Reveal key={step.n} delay={i * 0.12}>
-                <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-brand-500 font-display text-2xl text-white shadow-glow">
-                  {step.n}
-                </div>
-                <h3 className="mt-5 text-lg font-semibold">{step.title}</h3>
-                <p className="mt-2 text-sm text-paper/60">{step.body}</p>
-              </Reveal>
-            ))}
-          </div>
-        </Container>
-      </section>
-
-      <section className="py-24">
-        <Container>
-          <Reveal>
-            <div className="relative overflow-hidden rounded-3xl bg-brand-500 px-8 py-16 text-center text-white sm:px-16">
-              <div
-                className="pointer-events-none absolute -left-10 -top-10 h-52 w-52 rounded-full border-8 border-white/10"
-                aria-hidden
-              />
-              <div
-                className="pointer-events-none absolute -bottom-16 -right-10 h-64 w-64 rounded-full border-8 border-white/10"
-                aria-hidden
-              />
-              <h2 className="font-display text-5xl">Got a design in mind?</h2>
-              <p className="mx-auto mt-4 max-w-md text-white/85">
-                Our canvas supports your own uploads, English and Arabic type, and a library of ready-made designs.
-              </p>
-              <LinkButton to="/design" size="lg" variant="secondary" className="mt-8 bg-ink text-paper hover:bg-black">
-                Open the Designer
+      {featured && featured.length > 0 && (
+        <section className="pb-24">
+          <Container>
+            <Reveal className="mb-8 flex items-end justify-between">
+              <h2 className="font-display text-5xl tracking-wide">Fresh off the rack</h2>
+              <LinkButton to="/shop" variant="ghost" size="sm">
+                View all →
               </LinkButton>
+            </Reveal>
+            <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-4">
+              {featured.map((product, index) => (
+                <ProductCard key={product.id} product={product} index={index} />
+              ))}
             </div>
-          </Reveal>
-        </Container>
-      </section>
+          </Container>
+        </section>
+      )}
     </div>
   );
 }

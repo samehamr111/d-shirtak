@@ -4,7 +4,7 @@ import { Container } from "../components/ui/Container";
 import { Button } from "../components/ui/Button";
 import { LinkButton } from "../components/ui/LinkButton";
 import { PageSpinner } from "../components/ui/Spinner";
-import { Badge } from "../components/ui/Badge";
+import { Sparkle } from "../components/ui/ShirtMark";
 import { useProduct } from "../features/catalog/catalog-api";
 import { useAddToCart } from "../features/cart/cart-api";
 import { useAuth } from "../features/auth/auth-context";
@@ -34,9 +34,7 @@ export function ProductPage() {
 
   if (isLoading) return <PageSpinner />;
   if (isError || !product) {
-    return (
-      <Container className="py-20 text-center text-ink/60">Couldn't find that product.</Container>
-    );
+    return <Container className="py-20 text-center text-ink/60">Couldn't find that product.</Container>;
   }
 
   async function handleAddToCart() {
@@ -54,64 +52,69 @@ export function ProductPage() {
     }
   }
 
+  const image = activeColor && (side === "front" ? activeColor.modelFrontImageUrl ?? activeColor.frontImageUrl : activeColor.modelBackImageUrl ?? activeColor.backImageUrl);
+
   return (
-    <Container className="py-10">
-      <div className="grid gap-10 lg:grid-cols-2">
+    <Container className="py-8">
+      <div className="grid gap-11 lg:grid-cols-2">
         <div>
-          <div className="aspect-[4/5] overflow-hidden rounded-2xl bg-ink/5">
-            {activeColor && (
-              <img
-                src={
-                  side === "front"
-                    ? activeColor.modelFrontImageUrl ?? activeColor.frontImageUrl
-                    : activeColor.modelBackImageUrl ?? activeColor.backImageUrl
-                }
-                alt={`${product.name} ${side}`}
-                className="h-full w-full object-contain"
-              />
-            )}
-          </div>
-          <div className="mt-4 flex gap-2">
-            <button
-              onClick={() => setSide("front")}
-              className={`rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-wide ${
-                side === "front" ? "bg-ink text-paper" : "bg-ink/5 text-ink/60"
-              }`}
-            >
-              Front
-            </button>
-            <button
-              onClick={() => setSide("back")}
-              className={`rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-wide ${
-                side === "back" ? "bg-ink text-paper" : "bg-ink/5 text-ink/60"
-              }`}
-            >
-              Back
-            </button>
+          <div className="relative rounded-[20px] bg-white p-6 shadow-[0_16px_44px_rgba(4,4,4,0.07)]">
+            <div className="relative flex h-[470px] items-center justify-center overflow-hidden rounded-2xl bg-[repeating-linear-gradient(135deg,#f5f4f0_0px,#f5f4f0_10px,#eeece6_10px,#eeece6_20px)]">
+              {image && <img src={image} alt={`${product.name} ${side}`} className="h-full w-full object-contain" />}
+              <span
+                className={`absolute left-3.5 top-3.5 rounded-full px-3 py-2 text-[10px] font-bold uppercase tracking-wide ${
+                  product.isCustomizable ? "bg-brand-500 text-ink" : "bg-ink/[.07] text-ink/60"
+                }`}
+              >
+                {product.isCustomizable ? "Customizable" : "Ready-Printed"}
+              </span>
+            </div>
+            <div className="mt-4 flex items-center justify-between">
+              <div className="flex gap-1.5 rounded-full bg-paper p-1.5">
+                <button
+                  onClick={() => setSide("front")}
+                  className={`rounded-full px-4 py-2.5 text-xs font-semibold transition-colors ${
+                    side === "front" ? "bg-ink text-paper" : "text-ink/55 hover:bg-ink/5"
+                  }`}
+                >
+                  Front
+                </button>
+                <button
+                  onClick={() => setSide("back")}
+                  className={`rounded-full px-4 py-2.5 text-xs font-semibold transition-colors ${
+                    side === "back" ? "bg-ink text-paper" : "text-ink/55 hover:bg-ink/5"
+                  }`}
+                >
+                  Back
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
         <div>
-          {product.isCustomizable ? (
-            <Badge tone="brand">Customizable</Badge>
-          ) : (
-            <Badge tone="pop">Ready-Printed</Badge>
-          )}
-          <h1 className="mt-3 font-display text-5xl">{product.name}</h1>
-          <p className="mt-1 font-mono text-xs text-ink/40">Style {product.code}</p>
-          <p className="mt-3 max-w-md text-ink/60">{product.description}</p>
-          <p className="mt-4 text-2xl font-semibold">EGP {(variant?.price ?? product.basePrice).toFixed(0)}</p>
+          <p className="font-mono text-[11px] uppercase tracking-widest text-ink/45">
+            Shop / {product.code}
+          </p>
+          <h1 className="mt-3 font-display text-6xl leading-[0.92] tracking-wide">{product.name}</h1>
+          <div className="mt-2.5 flex items-baseline gap-3.5">
+            <span className="text-2xl font-semibold text-brand-700">EGP {(variant?.price ?? product.basePrice).toFixed(0)}</span>
+            <span className="text-xs text-ink/50">{product.isCustomizable ? "print included · no setup fee" : "ships as-is"}</span>
+          </div>
+          <p className="mt-4 max-w-md text-[15px] leading-relaxed text-ink/65">{product.description}</p>
 
-          <div className="mt-8">
-            <p className="text-xs font-semibold uppercase tracking-wide text-ink/50">Color</p>
-            <div className="mt-2 flex flex-wrap gap-2">
+          <div className="mt-7">
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest">
+              Color — <span className="text-brand-700">{activeColor?.color.name}</span>
+            </p>
+            <div className="flex flex-wrap gap-2.5">
               {product.colors.map((c) => (
                 <button
                   key={c.colorId}
                   onClick={() => setColorId(c.colorId)}
                   title={c.color.name}
-                  className={`h-10 w-10 rounded-full border-2 ring-1 ring-ink/10 transition-transform ${
-                    activeColorId === c.colorId ? "scale-110 border-brand-500" : "border-white"
+                  className={`h-9 w-9 rounded-full shadow-sm transition-transform hover:scale-110 ${
+                    activeColorId === c.colorId ? "border-2 border-brand-500 ring-2 ring-brand-500/25" : "border border-ink/15"
                   }`}
                   style={{ backgroundColor: c.color.hexCode }}
                 />
@@ -120,8 +123,8 @@ export function ProductPage() {
           </div>
 
           <div className="mt-6">
-            <p className="text-xs font-semibold uppercase tracking-wide text-ink/50">Size</p>
-            <div className="mt-2 flex flex-wrap gap-2">
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest">Size</p>
+            <div className="flex flex-wrap gap-2">
               {product.sizes.map((s) => {
                 const stock = product.variants.find((v) => v.colorId === activeColorId && v.sizeId === s.sizeId);
                 const outOfStock = !stock || stock.stockQuantity === 0;
@@ -130,8 +133,8 @@ export function ProductPage() {
                     key={s.sizeId}
                     disabled={outOfStock}
                     onClick={() => setSizeId(s.sizeId)}
-                    className={`h-11 min-w-11 rounded-xl border px-3 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-30 ${
-                      activeSizeId === s.sizeId ? "border-ink bg-ink text-paper" : "border-ink/20 hover:border-ink"
+                    className={`rounded-xl border-[1.5px] px-4 py-3 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-30 ${
+                      activeSizeId === s.sizeId ? "border-ink bg-ink text-paper" : "border-ink/16 bg-white hover:border-ink"
                     }`}
                   >
                     {s.size.name}
@@ -140,62 +143,82 @@ export function ProductPage() {
               })}
             </div>
             {variant && (
-              <p className="mt-2 text-xs text-ink/50">
+              <p className="mt-2.5 text-xs text-ink/50">
                 {variant.stockQuantity > 0 ? `${variant.stockQuantity} in stock` : "Out of stock"}
               </p>
             )}
           </div>
 
-          <div className="mt-6 flex items-center gap-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-ink/50">Qty</p>
-            <div className="flex items-center rounded-full border border-ink/15">
-              <button
-                className="h-10 w-10 text-lg"
-                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                aria-label="Decrease quantity"
-              >
-                −
-              </button>
-              <span className="w-8 text-center text-sm font-semibold">{quantity}</span>
-              <button
-                className="h-10 w-10 text-lg"
-                onClick={() => setQuantity((q) => Math.min(20, q + 1))}
-                aria-label="Increase quantity"
-              >
-                +
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            {product.isCustomizable && (
-              <LinkButton to={`/design/${product.slug}`} size="lg" className="sm:flex-1">
-                Design This
+          {product.isCustomizable ? (
+            <div className="mt-7 flex flex-wrap items-center gap-3.5">
+              <LinkButton to={`/design/${product.slug}`} size="lg" className="animate-glow">
+                Start Designing →
               </LinkButton>
-            )}
-            <Button
-              variant="outline"
-              size="lg"
-              className="sm:flex-1"
-              disabled={!variant || variant.stockQuantity === 0 || addToCart.isPending}
-              onClick={handleAddToCart}
-            >
-              {variant && variant.stockQuantity === 0
-                ? "Out of Stock"
-                : product.isCustomizable
-                  ? "Add Blank to Cart"
-                  : "Add to Cart"}
-            </Button>
-          </div>
-          {message && (
-            <p className={`mt-3 text-sm font-medium ${message.isError ? "text-red-600" : "text-brand-600"}`}>
-              {message.text}
-            </p>
+              <Button
+                variant="outline"
+                size="lg"
+                disabled={!variant || variant.stockQuantity === 0 || addToCart.isPending}
+                onClick={handleAddToCart}
+              >
+                {variant && variant.stockQuantity === 0 ? "Out of Stock" : "Add blank to cart"}
+              </Button>
+            </div>
+          ) : (
+            <div className="mt-7 flex items-center gap-3">
+              <div className="flex items-center rounded-full border border-ink/15 px-1">
+                <button className="h-11 w-9 text-lg" onClick={() => setQuantity((q) => Math.max(1, q - 1))} aria-label="Decrease quantity">
+                  −
+                </button>
+                <span className="w-8 text-center text-sm font-semibold">{quantity}</span>
+                <button className="h-11 w-9 text-lg" onClick={() => setQuantity((q) => Math.min(20, q + 1))} aria-label="Increase quantity">
+                  +
+                </button>
+              </div>
+              <Button
+                size="lg"
+                variant="secondary"
+                disabled={!variant || variant.stockQuantity === 0 || addToCart.isPending}
+                onClick={handleAddToCart}
+              >
+                {variant && variant.stockQuantity === 0 ? "Out of Stock" : "Add to cart"}
+              </Button>
+            </div>
           )}
 
+          {message && (
+            <p className={`mt-3.5 text-sm font-medium ${message.isError ? "text-red-600" : "text-brand-700"}`}>{message.text}</p>
+          )}
+
+          {product.isCustomizable ? (
+            <div className="mt-6 flex max-w-[440px] items-center gap-3.5 rounded-2xl bg-brand-500/10 p-4">
+              <Sparkle size={20} className="animate-twinkle text-brand-500" />
+              <span className="text-[13px] leading-relaxed text-ink/70">
+                Design free, pay only when you order. Your work saves to the canvas as you go.
+              </span>
+            </div>
+          ) : (
+            <div className="mt-6 flex max-w-[430px] items-center gap-3.5 rounded-2xl border border-brand-500/40 bg-white p-4">
+              <Sparkle size={26} className="text-brand-500" />
+              <div>
+                <p className="text-sm font-semibold">Want this, but yours?</p>
+                <p className="text-xs leading-relaxed text-ink/60">Open a blank and put your own art on it instead.</p>
+              </div>
+              <LinkButton to="/design" size="sm" className="ml-auto whitespace-nowrap">
+                Start Designing
+              </LinkButton>
+            </div>
+          )}
+
+          <div className="mt-6 flex gap-6 font-mono text-[11px] text-ink/50">
+            <span>Cash on delivery</span>
+            <span>Free returns</span>
+          </div>
+
           {product.sizes.find((s) => s.sizeId === activeSizeId) && (
-            <div className="mt-10 rounded-2xl bg-ink/5 p-5 text-sm text-ink/70">
-              <p className="mb-2 font-semibold text-ink">Garment measurements ({product.sizes.find((s) => s.sizeId === activeSizeId)?.size.name})</p>
+            <div className="mt-8 rounded-2xl bg-ink/5 p-5 text-sm text-ink/70">
+              <p className="mb-2 font-semibold text-ink">
+                Garment measurements ({product.sizes.find((s) => s.sizeId === activeSizeId)?.size.name})
+              </p>
               {(() => {
                 const size = product.sizes.find((s) => s.sizeId === activeSizeId)!;
                 return (

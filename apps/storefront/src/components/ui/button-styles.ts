@@ -5,7 +5,7 @@ const base =
   "inline-flex items-center justify-center gap-2 font-semibold tracking-wide transition-all duration-200 disabled:opacity-40 disabled:pointer-events-none whitespace-nowrap";
 
 const variants: Record<Variant, string> = {
-  primary: "bg-brand-500 text-white shadow-pop hover:bg-brand-600 active:scale-[0.97]",
+  primary: "bg-brand-500 text-ink shadow-pop hover:bg-brand-400 active:scale-[0.97]",
   secondary: "bg-ink text-paper hover:bg-black active:scale-[0.97]",
   outline: "border-2 border-ink text-ink hover:bg-ink hover:text-paper active:scale-[0.97]",
   ghost: "text-ink hover:bg-ink/5 active:scale-[0.97]",

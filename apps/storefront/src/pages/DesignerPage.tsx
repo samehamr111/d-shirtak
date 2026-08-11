@@ -12,6 +12,7 @@ import { useAuth } from "../features/auth/auth-context";
 import { Container } from "../components/ui/Container";
 import { Button } from "../components/ui/Button";
 import { PageSpinner } from "../components/ui/Spinner";
+import { Sparkle } from "../components/ui/ShirtMark";
 import { api } from "../lib/api-client";
 import { describeError } from "../lib/errors";
 
@@ -24,24 +25,17 @@ const AR_PREVIEW_PLACEHOLDER = "تصميمك";
 
 function ShirtIcon() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
       <path d="M8 4 3 8l2.5 3L8 9.5V21h8V9.5L18.5 11 21 8l-5-4-1.5 1.5a3 3 0 0 1-5 0Z" strokeLinejoin="round" />
     </svg>
   );
 }
 function ImageIcon() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
       <rect x="3" y="4" width="18" height="16" rx="2" />
       <circle cx="8.5" cy="9.5" r="1.5" />
       <path d="m3 16 5-5 4 4 3-3 6 6" strokeLinejoin="round" strokeLinecap="round" />
-    </svg>
-  );
-}
-function FlipIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M17 2.1 21 6l-4 3.9M3 11V9a4 4 0 0 1 4-4h14M7 21.9 3 18l4-3.9M21 13v2a4 4 0 0 1-4 4H3" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -53,8 +47,8 @@ function RailButton({ active, label, onClick, children }: { active: boolean; lab
       onClick={onClick}
       title={label}
       aria-label={label}
-      className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-colors ${
-        active ? "bg-brand-500 text-white" : "text-paper/45 hover:bg-white/10 hover:text-paper"
+      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors ${
+        active ? "bg-brand-500 text-ink" : "text-white/45 hover:bg-white/10 hover:text-white"
       }`}
     >
       {children}
@@ -63,7 +57,7 @@ function RailButton({ active, label, onClick, children }: { active: boolean; lab
 }
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink/50">{children}</p>;
+  return <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest">{children}</p>;
 }
 
 export function DesignerPage() {
@@ -206,292 +200,307 @@ export function DesignerPage() {
 
   return (
     <Container className="py-8">
-      <Link to={`/shop/${product.slug}`} className="text-sm font-semibold text-ink/50 hover:text-ink">
-        ← Back to {product.name}
-      </Link>
-
-      <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
-        <h1 className="font-display text-4xl">Design your {product.name}</h1>
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink/[.07] pb-4.5">
+        <div>
+          <Link to={`/shop/${product.slug}`} className="text-[12.5px] font-medium text-ink/50 hover:text-ink">
+            ← Back to {product.name}
+          </Link>
+          <h1 className="mt-2.5 font-display text-4xl tracking-wide sm:text-5xl">DESIGN YOUR {product.name.toUpperCase()}</h1>
+        </div>
         <div className="text-right">
-          {variant && <p className="text-lg font-semibold">EGP {variant.price.toFixed(0)}</p>}
+          {variant && <p className="font-display text-4xl text-brand-700">EGP {variant.price.toFixed(0)}</p>}
           {storeSettings && (
-            <p className="text-xs text-ink/50">+ EGP {storeSettings.customizationSurchargeEgp.toFixed(0)} per printed side</p>
+            <p className="mt-1 font-mono text-[11px] text-ink/45">
+              EGP {product.basePrice.toFixed(0)} base · +EGP {storeSettings.customizationSurchargeEgp.toFixed(0)} per printed side
+            </p>
           )}
         </div>
       </div>
 
-      <div className="mt-6 flex flex-col gap-4 lg:grid lg:grid-cols-[64px_320px_1fr] lg:items-start lg:gap-6">
-        {/* Canvas — first in the DOM so it appears first on mobile */}
-        <div className="lg:col-start-3 lg:row-start-1">
-          <div
-            className="relative mx-auto w-full max-w-md touch-none overflow-hidden rounded-2xl border border-ink/10 bg-white shadow-pop lg:max-w-none"
-            style={{ aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}` }}
-          >
-            <SideCanvas
-              ref={frontRef}
-              visible={side === "front"}
-              backgroundUrl={activeColor?.frontImageUrl}
-              printArea={activeSize?.printAreaFront}
-              onSelectionChange={setSelection}
-              onBackgroundError={() => setError("Couldn't load the garment image for this color. Try picking a different color or refreshing the page.")}
-            />
-            <SideCanvas
-              ref={backRef}
-              visible={side === "back"}
-              backgroundUrl={activeColor?.backImageUrl}
-              printArea={activeSize?.printAreaBack}
-              onSelectionChange={setSelection}
-              onBackgroundError={() => setError("Couldn't load the garment image for this color. Try picking a different color or refreshing the page.")}
-            />
-            <button
-              type="button"
-              onClick={() => setSide((s) => (s === "front" ? "back" : "front"))}
-              className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-2 text-xs font-semibold text-ink shadow-pop backdrop-blur transition-transform hover:scale-105"
-            >
-              <FlipIcon />
-              {side === "front" ? "Front" : "Back"}
-            </button>
-          </div>
-          <p className="mt-3 text-center text-xs text-ink/40">
-            The dashed line marks the printable area for size {activeSize?.size.name ?? "—"}.
-          </p>
-
-          {selection && (
-            <div className="mt-4 flex flex-wrap items-center gap-2 rounded-2xl border border-brand-500/30 bg-brand-50 p-3">
-              <span className="text-xs font-semibold uppercase tracking-wide text-brand-700">Selected</span>
-              <button
-                onClick={() => activeCanvasRef.current?.bringForward()}
-                className="rounded-full bg-white px-3 py-1 text-xs font-semibold shadow-sm"
+      <div className="mt-6 overflow-hidden rounded-[20px] border border-ink/[.08] bg-white shadow-[0_2px_10px_rgba(0,0,0,.08)]">
+        <div className="grid lg:grid-cols-[64px_320px_1fr]">
+          {/* Canvas — first in the DOM so it appears first on mobile */}
+          <div className="relative flex flex-col items-center justify-center gap-5 bg-[radial-gradient(circle_at_50%_36%,#f6f5f0_0%,#e9e7e1_100%)] p-9 lg:col-start-3 lg:row-start-1">
+            <div className="relative">
+              <div
+                className="relative w-full max-w-md touch-none overflow-hidden rounded-2xl bg-white shadow-[0_24px_42px_rgba(4,4,4,.15)] lg:max-w-[420px]"
+                style={{ aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}` }}
               >
-                Forward
-              </button>
-              <button
-                onClick={() => activeCanvasRef.current?.sendBackward()}
-                className="rounded-full bg-white px-3 py-1 text-xs font-semibold shadow-sm"
-              >
-                Backward
-              </button>
-              <button
-                onClick={() => {
-                  activeCanvasRef.current?.deleteSelected();
-                  setSelection(null);
-                }}
-                className="rounded-full bg-red-600 px-3 py-1 text-xs font-semibold text-white"
-              >
-                Delete
-              </button>
-            </div>
-          )}
-
-          <div className="sticky bottom-0 z-10 -mx-4 mt-4 border-t border-ink/10 bg-paper/95 px-4 py-3 backdrop-blur lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
-            {error && <p className="mb-2 text-sm font-medium text-red-600">{error}</p>}
-            <Button size="lg" className="w-full" disabled={!variant || busy} onClick={handleAddToCart}>
-              {busy ? "Saving your design…" : `Add to Cart — EGP ${(variant?.price ?? product.basePrice).toFixed(0)}`}
-            </Button>
-          </div>
-        </div>
-
-        {/* Icon rail */}
-        <div className="flex flex-row gap-2 rounded-2xl bg-ink p-2 lg:col-start-1 lg:row-start-1 lg:flex-col">
-          <RailButton active={tab === "garment"} label="Garment" onClick={() => setTab("garment")}>
-            <ShirtIcon />
-          </RailButton>
-          <RailButton active={tab === "design"} label="Designs" onClick={() => setTab("design")}>
-            <ImageIcon />
-          </RailButton>
-          <RailButton active={tab === "text"} label="Text" onClick={() => setTab("text")}>
-            <span className="font-display text-xl leading-none">T</span>
-          </RailButton>
-        </div>
-
-        {/* Tool panel */}
-        <div className="rounded-2xl bg-brand-200/70 p-4 lg:col-start-2 lg:row-start-1">
-          {tab === "garment" && (
-            <div className="space-y-5">
-              <div>
-                <Label>Choose your color</Label>
-                <div className="flex flex-wrap gap-2">
-                  {product.colors.map((c) => (
-                    <button
-                      key={c.colorId}
-                      onClick={() => setColorId(c.colorId)}
-                      title={c.color.name}
-                      className={`h-9 w-9 rounded-full border-2 ring-1 ring-ink/10 transition-transform ${
-                        activeColorId === c.colorId ? "scale-110 border-ink" : "border-white"
-                      }`}
-                      style={{ backgroundColor: c.color.hexCode }}
-                    />
-                  ))}
-                </div>
-              </div>
-              <div>
-                <Label>Choose your size</Label>
-                <div className="flex flex-wrap gap-1.5">
-                  {product.sizes.map((s) => (
-                    <button
-                      key={s.sizeId}
-                      onClick={() => setSizeId(s.sizeId)}
-                      className={`h-9 min-w-9 rounded-lg border px-2.5 text-sm font-semibold ${
-                        activeSizeId === s.sizeId ? "border-ink bg-ink text-paper" : "border-ink/20 bg-white/60 hover:border-ink"
-                      }`}
-                    >
-                      {s.size.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {activeSize && (
-                <div className="rounded-xl bg-white/60 p-3 text-xs text-ink/70">
-                  <p className="mb-1 font-semibold text-ink">Measurements ({activeSize.size.name})</p>
-                  <ul className="grid grid-cols-3 gap-1">
-                    <li>Chest {activeSize.chestWidthCm}cm</li>
-                    <li>Length {activeSize.lengthCm}cm</li>
-                    <li>Waist {activeSize.waistCm}cm</li>
-                  </ul>
-                </div>
-              )}
-            </div>
-          )}
-
-          {tab === "design" && (
-            <div className="space-y-4">
-              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-ink/25 bg-white/50 px-4 py-3 text-center text-sm font-semibold text-ink hover:bg-white/80">
-                Can't find what you're looking for? Upload your own
-                <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleUploadFile} />
-              </label>
-
-              <div>
-                <div className="mb-2 flex flex-wrap gap-2">
-                  <button
-                    onClick={() => setActiveDesignCategoryId(undefined)}
-                    className={`rounded-full px-3 py-1 text-xs font-semibold uppercase ${
-                      !activeDesignCategoryId ? "bg-ink text-paper" : "bg-white/60 text-ink/60"
-                    }`}
-                  >
-                    All
-                  </button>
-                  {designCategories?.map((cat) => (
-                    <button
-                      key={cat.id}
-                      onClick={() => setActiveDesignCategoryId(cat.id)}
-                      className={`rounded-full px-3 py-1 text-xs font-semibold uppercase ${
-                        activeDesignCategoryId === cat.id ? "bg-ink text-paper" : "bg-white/60 text-ink/60"
-                      }`}
-                    >
-                      {cat.name}
-                    </button>
-                  ))}
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {designAssets?.map((asset) => (
-                    <button
-                      key={asset.id}
-                      onClick={() =>
-                        activeCanvasRef.current
-                          ?.addImageFromUrl(asset.imageUrl, true)
-                          .catch(() => setError("Couldn't add that design to the canvas. Try again."))
-                      }
-                      className="aspect-square overflow-hidden rounded-xl border border-ink/10 bg-white/70 p-2 transition-transform hover:scale-105"
-                      title={asset.name}
-                    >
-                      <img src={asset.imageUrl} alt={asset.name} className="h-full w-full object-contain" />
-                    </button>
-                  ))}
-                  {designAssets?.length === 0 && <p className="col-span-3 text-sm text-ink/50">No designs here yet.</p>}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {tab === "text" && (
-            <div className="space-y-4">
-              <div>
-                <Label>Your text</Label>
-                <input
-                  value={textDraft}
-                  onChange={(e) => setTextDraft(e.target.value)}
-                  placeholder="Type here…"
-                  dir="auto"
-                  className="w-full rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ink/20"
+                <SideCanvas
+                  ref={frontRef}
+                  visible={side === "front"}
+                  backgroundUrl={activeColor?.frontImageUrl}
+                  printArea={activeSize?.printAreaFront}
+                  onSelectionChange={setSelection}
+                  onBackgroundError={() => setError("Couldn't load the garment image for this color. Try picking a different color or refreshing the page.")}
+                />
+                <SideCanvas
+                  ref={backRef}
+                  visible={side === "back"}
+                  backgroundUrl={activeColor?.backImageUrl}
+                  printArea={activeSize?.printAreaBack}
+                  onSelectionChange={setSelection}
+                  onBackgroundError={() => setError("Couldn't load the garment image for this color. Try picking a different color or refreshing the page.")}
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              {selection && (
+                <div className="absolute -top-[52px] left-1/2 flex -translate-x-1/2 gap-1.5 rounded-full bg-ink p-1.5 shadow-pop">
+                  <button
+                    onClick={() => activeCanvasRef.current?.bringForward()}
+                    className="rounded-full px-3 py-2 text-[11.5px] font-medium text-white hover:bg-white/10"
+                  >
+                    Forward
+                  </button>
+                  <button
+                    onClick={() => activeCanvasRef.current?.sendBackward()}
+                    className="rounded-full px-3 py-2 text-[11.5px] font-medium text-white hover:bg-white/10"
+                  >
+                    Backward
+                  </button>
+                  <button
+                    onClick={() => {
+                      activeCanvasRef.current?.deleteSelected();
+                      setSelection(null);
+                    }}
+                    className="rounded-full bg-brand-500 px-3 py-2 text-[11.5px] font-semibold text-ink"
+                  >
+                    Delete
+                  </button>
+                </div>
+              )}
+
+              <div className="absolute right-3.5 top-3.5 flex gap-1.5 rounded-full bg-white p-1.5 shadow-[0_6px_18px_rgba(0,0,0,.1)]">
+                <button
+                  onClick={() => setSide("front")}
+                  className={`rounded-full px-4.5 py-2.5 text-xs font-semibold transition-colors ${
+                    side === "front" ? "bg-ink text-paper" : "text-ink/55 hover:bg-ink/5"
+                  }`}
+                >
+                  Front
+                </button>
+                <button
+                  onClick={() => setSide("back")}
+                  className={`rounded-full px-4.5 py-2.5 text-xs font-semibold transition-colors ${
+                    side === "back" ? "bg-ink text-paper" : "text-ink/55 hover:bg-ink/5"
+                  }`}
+                >
+                  Back
+                </button>
+              </div>
+            </div>
+            <span className="font-mono text-[10.5px] tracking-wide text-ink/42">
+              DASHED LINE = REAL PRINTABLE AREA FOR SIZE {activeSize?.size.name ?? "—"}
+            </span>
+          </div>
+
+          {/* Icon rail */}
+          <div className="flex flex-row gap-2 bg-ink p-3 lg:col-start-1 lg:row-start-1 lg:flex-col lg:items-center">
+            <RailButton active={tab === "garment"} label="Garment" onClick={() => setTab("garment")}>
+              <ShirtIcon />
+            </RailButton>
+            <RailButton active={tab === "design"} label="Designs" onClick={() => setTab("design")}>
+              <ImageIcon />
+            </RailButton>
+            <RailButton active={tab === "text"} label="Text" onClick={() => setTab("text")}>
+              <span className="font-display text-lg leading-none">Aa</span>
+            </RailButton>
+          </div>
+
+          {/* Tool panel */}
+          <div className="border-r border-ink/[.08] bg-white p-6 lg:col-start-2 lg:row-start-1 lg:max-h-[660px] lg:overflow-y-auto">
+            {tab === "garment" && (
+              <div className="space-y-6">
+                <div>
+                  <Label>
+                    Garment color — <span className="text-brand-700">{activeColor?.color.name}</span>
+                  </Label>
+                  <div className="flex flex-wrap gap-2.5">
+                    {product.colors.map((c) => (
+                      <button
+                        key={c.colorId}
+                        onClick={() => setColorId(c.colorId)}
+                        title={c.color.name}
+                        className={`h-8 w-8 rounded-full shadow-sm transition-transform hover:scale-110 ${
+                          activeColorId === c.colorId ? "border-2 border-brand-500 ring-2 ring-brand-500/25" : "border border-ink/15"
+                        }`}
+                        style={{ backgroundColor: c.color.hexCode }}
+                      />
+                    ))}
+                  </div>
+                </div>
                 <div>
                   <Label>Size</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {product.sizes.map((s) => (
+                      <button
+                        key={s.sizeId}
+                        onClick={() => setSizeId(s.sizeId)}
+                        className={`rounded-[10px] border-[1.5px] px-4 py-3 text-sm font-semibold transition-colors ${
+                          activeSizeId === s.sizeId ? "border-ink bg-ink text-paper" : "border-ink/16 bg-white hover:border-ink"
+                        }`}
+                      >
+                        {s.size.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {activeSize && (
+                  <div className="rounded-2xl bg-paper p-4">
+                    <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-widest">Measurements — size {activeSize.size.name}</p>
+                    <div className="flex flex-col gap-2 text-[13.5px] text-ink/68">
+                      <div className="flex justify-between"><span>Chest</span><span className="font-semibold text-ink">{activeSize.chestWidthCm} cm</span></div>
+                      <div className="flex justify-between"><span>Length</span><span className="font-semibold text-ink">{activeSize.lengthCm} cm</span></div>
+                      <div className="flex justify-between"><span>Waist</span><span className="font-semibold text-ink">{activeSize.waistCm} cm</span></div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {tab === "design" && (
+              <div className="space-y-5">
+                <label className="flex cursor-pointer flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-brand-500/60 bg-brand-500/[.06] p-5.5 text-center">
+                  <Sparkle size={22} className="animate-twinkle text-brand-500" />
+                  <span className="text-[13px] font-semibold text-brand-700">Upload your own art</span>
+                  <span className="text-[11.5px] text-ink/50">PNG, JPG or WEBP</span>
+                  <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleUploadFile} />
+                </label>
+
+                <div>
+                  <div className="mb-2.5 flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setActiveDesignCategoryId(undefined)}
+                      className={`rounded-full px-3.5 py-2 text-xs font-semibold ${
+                        !activeDesignCategoryId ? "bg-ink text-paper" : "bg-paper text-ink/60"
+                      }`}
+                    >
+                      All
+                    </button>
+                    {designCategories?.map((cat) => (
+                      <button
+                        key={cat.id}
+                        onClick={() => setActiveDesignCategoryId(cat.id)}
+                        className={`rounded-full px-3.5 py-2 text-xs font-semibold ${
+                          activeDesignCategoryId === cat.id ? "bg-ink text-paper" : "bg-paper text-ink/60"
+                        }`}
+                      >
+                        {cat.name}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {designAssets?.map((asset) => (
+                      <button
+                        key={asset.id}
+                        onClick={() =>
+                          activeCanvasRef.current
+                            ?.addImageFromUrl(asset.imageUrl, true)
+                            .catch(() => setError("Couldn't add that design to the canvas. Try again."))
+                        }
+                        className="flex h-[100px] items-center justify-center rounded-xl border border-ink/[.08] bg-paper p-3 transition-transform hover:scale-[1.04]"
+                        title={asset.name}
+                      >
+                        <img src={asset.imageUrl} alt={asset.name} className="h-full w-full object-contain" />
+                      </button>
+                    ))}
+                    {designAssets?.length === 0 && <p className="col-span-2 text-sm text-ink/50">No designs here yet.</p>}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {tab === "text" && (
+              <div className="space-y-5">
+                <div>
+                  <Label>Your text — EN or AR</Label>
+                  <textarea
+                    value={textDraft}
+                    onChange={(e) => setTextDraft(e.target.value)}
+                    placeholder="Type your text… اكتب هنا"
+                    dir="auto"
+                    className="min-h-[72px] w-full resize-none rounded-xl border-[1.5px] border-ink/[.14] bg-white px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/25"
+                  />
+                </div>
+
+                <div>
+                  <div className="mb-2.5 flex items-center justify-between">
+                    <Label>Size</Label>
+                    <span className="text-xs font-semibold text-brand-700">{textStyle.fontSize}pt</span>
+                  </div>
                   <input
                     type="range"
                     min={16}
                     max={160}
                     value={textStyle.fontSize}
                     onChange={(e) => applyStylePatch({ fontSize: Number(e.target.value) })}
-                    className="w-full"
+                    className="w-full accent-brand-500"
                   />
                 </div>
+
                 <div>
                   <Label>Color</Label>
-                  <input
-                    type="color"
-                    value={textStyle.fill}
-                    onChange={(e) => applyStylePatch({ fill: e.target.value })}
-                    className="h-9 w-full cursor-pointer rounded-lg border border-ink/15"
-                  />
+                  <div className="flex flex-wrap gap-2">
+                    {SWATCH_COLORS.map((hex) => (
+                      <button
+                        key={hex}
+                        onClick={() => applyStylePatch({ fill: hex })}
+                        className={`h-7 w-7 rounded-full shadow-sm ${textStyle.fill === hex ? "border-2 border-brand-500" : "border border-ink/15"}`}
+                        style={{ backgroundColor: hex }}
+                        aria-label={`Quick color ${hex}`}
+                      />
+                    ))}
+                    <input
+                      type="color"
+                      value={textStyle.fill}
+                      onChange={(e) => applyStylePatch({ fill: e.target.value })}
+                      className="h-7 w-7 cursor-pointer rounded-full border border-ink/15"
+                      aria-label="Custom color"
+                    />
+                  </div>
                 </div>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {SWATCH_COLORS.map((hex) => (
-                  <button
-                    key={hex}
-                    onClick={() => applyStylePatch({ fill: hex })}
-                    className="h-5 w-5 rounded-full border border-ink/10"
-                    style={{ backgroundColor: hex }}
-                    aria-label={`Quick color ${hex}`}
-                  />
-                ))}
-              </div>
 
-              <div>
-                <Label>{selection?.isText ? "Change font" : "Pick a font to add your text"}</Label>
-                <div className="max-h-72 space-y-1.5 overflow-y-auto pr-1">
-                  {enFonts.map((font) => (
-                    <button
-                      key={font.id}
-                      onClick={() => useFont(font)}
-                      className="flex w-full items-center justify-between rounded-xl bg-white/70 px-3 py-2.5 text-left hover:bg-white"
-                    >
-                      <span
-                        className="truncate text-lg text-ink"
-                        style={{ fontFamily: font.fontFamily, color: textStyle.fill }}
+                <div>
+                  <Label>{selection?.isText ? "Change font — English" : "Font — English"}</Label>
+                  <div className="flex flex-col gap-2">
+                    {enFonts.map((font) => (
+                      <button
+                        key={font.id}
+                        onClick={() => useFont(font)}
+                        className="rounded-[10px] border-[1.5px] border-ink/[.12] bg-white px-3.5 py-3 text-left transition-colors hover:border-brand-500"
                       >
-                        {fontPreviewText(font)}
-                      </span>
-                      <span className="ml-2 shrink-0 rounded-full bg-ink px-2.5 py-1 text-[10px] font-semibold uppercase text-paper">
-                        {font.name}
-                      </span>
-                    </button>
-                  ))}
-                  {arFonts.map((font) => (
-                    <button
-                      key={font.id}
-                      onClick={() => useFont(font)}
-                      className="flex w-full items-center justify-between rounded-xl bg-white/70 px-3 py-2.5 text-left hover:bg-white"
-                      dir="rtl"
-                    >
-                      <span
-                        className="truncate text-lg text-ink"
-                        style={{ fontFamily: font.fontFamily, color: textStyle.fill }}
+                        <span className="truncate text-base" style={{ fontFamily: font.fontFamily, color: textStyle.fill }}>
+                          {fontPreviewText(font)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mb-2.5 mt-4 text-[11px] font-semibold uppercase tracking-widest">Font — Arabic</p>
+                  <div className="flex flex-col gap-2">
+                    {arFonts.map((font) => (
+                      <button
+                        key={font.id}
+                        onClick={() => useFont(font)}
+                        dir="rtl"
+                        className="rounded-[10px] border-[1.5px] border-ink/[.12] bg-white px-3.5 py-3 text-right transition-colors hover:border-brand-500"
                       >
-                        {fontPreviewText(font)}
-                      </span>
-                      <span className="mr-2 shrink-0 rounded-full bg-ink px-2.5 py-1 text-[10px] font-semibold uppercase text-paper" dir="ltr">
-                        {font.name}
-                      </span>
-                    </button>
-                  ))}
+                        <span className="truncate text-base" style={{ fontFamily: font.fontFamily, color: textStyle.fill }}>
+                          {fontPreviewText(font)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
+        </div>
+
+        <div className="sticky bottom-0 z-10 flex items-center justify-end gap-4 border-t border-ink/[.08] bg-white px-6 py-4.5">
+          {error && <p className="text-sm font-medium text-red-600">{error}</p>}
+          <Button size="lg" className="animate-glow" disabled={!variant || busy} onClick={handleAddToCart}>
+            {busy ? "Saving your design…" : `Add to Cart — EGP ${(variant?.price ?? product.basePrice).toFixed(0)}`}
+          </Button>
         </div>
       </div>
     </Container>
