@@ -7,8 +7,9 @@
     "apps/*"
   ],
   "scripts": {
+    "postinstall": "npm run build --workspace=packages/shared",
     "dev": "concurrently -n api,storefront,admin -c blue,green,magenta \"npm run dev --workspace=apps/api\" \"npm run dev --workspace=apps/storefront\" \"npm run dev --workspace=apps/admin\"",
-    "build": "npm run build --workspace=apps/api && npm run build --workspace=apps/storefront && npm run build --workspace=apps/admin",
+    "build": "npm run build --workspace=packages/shared && npm run build --workspace=apps/api && npm run build --workspace=apps/storefront && npm run build --workspace=apps/admin",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "seed": "npm run seed --workspace=apps/api"
   },
