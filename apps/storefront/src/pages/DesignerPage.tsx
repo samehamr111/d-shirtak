@@ -208,7 +208,7 @@ export function DesignerPage() {
           <Link to={`/shop/${product.slug}`} className="text-[12.5px] font-medium text-ink/50 hover:text-ink">
             ← Back to {product.name}
           </Link>
-          <h1 className="mt-2.5 font-display text-4xl tracking-wide sm:text-5xl">DESIGN YOUR {product.name.toUpperCase()}</h1>
+          <h1 className="mt-2.5 font-display text-3xl tracking-wide sm:text-4xl lg:text-5xl">DESIGN YOUR {product.name.toUpperCase()}</h1>
         </div>
         <div className="text-right">
           {variant && <p className="font-display text-4xl text-brand-700">EGP {variant.price.toFixed(0)}</p>}
@@ -223,9 +223,9 @@ export function DesignerPage() {
       <div className="mt-6 overflow-hidden rounded-[20px] border border-ink/[.08] bg-white shadow-[0_2px_10px_rgba(0,0,0,.08)]">
         <div className="grid lg:grid-cols-[64px_320px_1fr]">
           {/* Canvas — first in the DOM so it appears first on mobile */}
-          <div className="relative flex flex-col items-center justify-center gap-5 bg-[radial-gradient(circle_at_50%_36%,#f6f5f0_0%,#e9e7e1_100%)] p-9 lg:col-start-3 lg:row-start-1">
+          <div className="relative flex flex-col items-center justify-center gap-4 bg-[radial-gradient(circle_at_50%_36%,#f6f5f0_0%,#e9e7e1_100%)] p-4 sm:gap-5 sm:p-9 lg:col-start-3 lg:row-start-1">
             <div
-              className="relative w-full max-w-md touch-none lg:max-w-[420px]"
+              className="relative w-full max-w-[260px] touch-none sm:max-w-md lg:max-w-[420px]"
               style={{ aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}` }}
             >
               <div className="absolute inset-0 overflow-hidden rounded-2xl bg-white shadow-[0_24px_42px_rgba(4,4,4,.15)]">
@@ -297,8 +297,8 @@ export function DesignerPage() {
             </span>
           </div>
 
-          {/* Icon rail */}
-          <div className="flex flex-row gap-2 bg-ink p-3 lg:col-start-1 lg:row-start-1 lg:flex-col lg:items-center">
+          {/* Icon rail — sticky on mobile so it stays reachable once you've scrolled past the canvas */}
+          <div className="sticky top-16 z-10 flex flex-row justify-center gap-2 bg-ink p-3 lg:static lg:col-start-1 lg:row-start-1 lg:flex-col lg:items-center">
             <RailButton active={tab === "garment"} label="Garment" onClick={() => setTab("garment")}>
               <ShirtIcon />
             </RailButton>
@@ -311,7 +311,7 @@ export function DesignerPage() {
           </div>
 
           {/* Tool panel */}
-          <div className="border-r border-ink/[.08] bg-white p-6 lg:col-start-2 lg:row-start-1 lg:max-h-[660px] lg:overflow-y-auto">
+          <div className="max-h-[46vh] overflow-y-auto border-r border-ink/[.08] bg-white p-5 sm:p-6 lg:col-start-2 lg:row-start-1 lg:max-h-[660px]">
             {tab === "garment" && (
               <div className="space-y-6">
                 <div>
