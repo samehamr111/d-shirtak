@@ -20,13 +20,29 @@ function subscribe(listener: Listener): () => void {
   return () => listeners.delete(listener);
 }
 
+// useSyncExternalStore requires getSnapshot to return the SAME reference when nothing has
+// changed -- parsing a fresh array out of localStorage on every call broke that contract and sent
+// React into "Maximum update depth exceeded" (every render produced a "new" snapshot, which
+// triggered another render, forever). Caching against the raw string keeps the reference stable
+// across calls until the underlying storage actually changes.
+let cachedRaw: string | null = null;
+let cachedParsed: LocalCartItem[] = [];
+
 function readAll(): LocalCartItem[] {
+  let raw: string | null;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as LocalCartItem[]) : [];
+    raw = localStorage.getItem(STORAGE_KEY);
   } catch {
-    return [];
+    return cachedParsed;
   }
+  if (raw === cachedRaw) return cachedParsed;
+  cachedRaw = raw;
+  try {
+    cachedParsed = raw ? (JSON.parse(raw) as LocalCartItem[]) : [];
+  } catch {
+    cachedParsed = [];
+  }
+  return cachedParsed;
 }
 
 function writeAll(items: LocalCartItem[]): void {

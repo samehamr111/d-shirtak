@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { CartDto } from "@d-shirtak/shared";
 import { api } from "../../lib/api-client";
@@ -14,6 +15,11 @@ const CART_KEY = ["cart"];
 export function useCart(): { data: CartDto | undefined; isLoading: boolean } {
   const { status } = useAuth();
   const localItems = useLocalCart();
+  // Memoized so guests get a stable `data` reference across renders when the cart hasn't actually
+  // changed -- anything that ever keys an effect off `cart.data` (a future SiteHeader animation,
+  // say) shouldn't be able to spin into a re-render loop the way the raw useSyncExternalStore
+  // snapshot instability once did.
+  const localCartDto = useMemo(() => toCartDto(localItems), [localItems]);
   const serverQuery = useQuery({
     queryKey: CART_KEY,
     queryFn: () => api.get<CartDto>("/cart"),
@@ -23,7 +29,7 @@ export function useCart(): { data: CartDto | undefined; isLoading: boolean } {
   if (status === "authenticated") {
     return { data: serverQuery.data, isLoading: serverQuery.isLoading };
   }
-  return { data: toCartDto(localItems), isLoading: false };
+  return { data: localCartDto, isLoading: false };
 }
 
 export interface AddToCartInput {
