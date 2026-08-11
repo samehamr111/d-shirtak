@@ -4,7 +4,7 @@ import type { FontDto } from "@d-shirtak/shared";
 import type { TextStyle } from "../features/designer/SideCanvas";
 import { SideCanvas, type SideCanvasHandle } from "../features/designer/SideCanvas";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "../features/designer/canvas-constants";
-import { useLoadWebFonts } from "../features/designer/use-load-web-fonts";
+import { useFontLoader } from "../features/designer/use-load-web-fonts";
 import { useDesignAssets, useDesignCategories, useFonts, useProduct, useStoreSettings } from "../features/catalog/catalog-api";
 import { useSaveDesign } from "../features/designer/design-api";
 import { useAddToCart } from "../features/cart/cart-api";
@@ -71,7 +71,7 @@ export function DesignerPage() {
   const { data: designCategories } = useDesignCategories();
   const [activeDesignCategoryId, setActiveDesignCategoryId] = useState<string | undefined>(undefined);
   const { data: designAssets } = useDesignAssets(activeDesignCategoryId);
-  useLoadWebFonts(fonts);
+  const loadFont = useFontLoader();
   const saveDesign = useSaveDesign();
   const addToCart = useAddToCart();
 
@@ -79,7 +79,8 @@ export function DesignerPage() {
   const [sizeId, setSizeId] = useState<string | null>(null);
   const [side, setSide] = useState<Side>("front");
   const [tab, setTab] = useState<Tab>("garment");
-  const [textDraft, setTextDraft] = useState("");
+  const [textDraftEn, setTextDraftEn] = useState("");
+  const [textDraftAr, setTextDraftAr] = useState("");
   const [textStyle, setTextStyle] = useState<TextStyle>(DEFAULT_TEXT_STYLE);
   const [selection, setSelection] = useState<{ isText: boolean; style?: TextStyle } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -146,18 +147,21 @@ export function DesignerPage() {
     if (selection?.isText) activeCanvasRef.current?.applyTextStyle(patch);
   }
 
-  function useFont(font: FontDto) {
+  async function useFont(font: FontDto) {
+    await loadFont(font);
     const style = { ...textStyle, fontFamily: font.fontFamily };
     setTextStyle(style);
     if (selection?.isText) {
       activeCanvasRef.current?.applyTextStyle({ fontFamily: font.fontFamily });
     } else {
-      activeCanvasRef.current?.addText(textDraft.trim() || "YOUR TEXT", style);
+      const draft = font.language === "AR" ? textDraftAr : textDraftEn;
+      activeCanvasRef.current?.addText(draft.trim() || (font.language === "AR" ? AR_PREVIEW_PLACEHOLDER : "YOUR TEXT"), style);
     }
   }
 
   function fontPreviewText(font: FontDto): string {
-    if (textDraft.trim()) return textDraft;
+    const draft = font.language === "AR" ? textDraftAr : textDraftEn;
+    if (draft.trim()) return draft;
     return font.language === "AR" ? AR_PREVIEW_PLACEHOLDER : "Your text";
   }
 
@@ -414,18 +418,7 @@ export function DesignerPage() {
             )}
 
             {tab === "text" && (
-              <div className="space-y-5">
-                <div>
-                  <Label>Your text — EN or AR</Label>
-                  <textarea
-                    value={textDraft}
-                    onChange={(e) => setTextDraft(e.target.value)}
-                    placeholder="Type your text… اكتب هنا"
-                    dir="auto"
-                    className="min-h-[72px] w-full resize-none rounded-xl border-[1.5px] border-ink/[.14] bg-white px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/25"
-                  />
-                </div>
-
+              <div className="space-y-6">
                 <div>
                   <div className="mb-2.5 flex items-center justify-between">
                     <Label>Size</Label>
@@ -463,9 +456,16 @@ export function DesignerPage() {
                   </div>
                 </div>
 
-                <div>
-                  <Label>{selection?.isText ? "Change font — English" : "Font — English"}</Label>
-                  <div className="flex flex-col gap-2">
+                <div className="border-t border-ink/[.08] pt-5">
+                  <Label>English text</Label>
+                  <textarea
+                    value={textDraftEn}
+                    onChange={(e) => setTextDraftEn(e.target.value)}
+                    placeholder="Type your text…"
+                    dir="ltr"
+                    className="min-h-[64px] w-full resize-none rounded-xl border-[1.5px] border-ink/[.14] bg-white px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/25"
+                  />
+                  <div className="mt-2.5 flex flex-col gap-2">
                     {enFonts.map((font) => (
                       <button
                         key={font.id}
@@ -477,9 +477,20 @@ export function DesignerPage() {
                         </span>
                       </button>
                     ))}
+                    {enFonts.length === 0 && <p className="text-sm text-ink/50">No English fonts yet.</p>}
                   </div>
-                  <p className="mb-2.5 mt-4 text-[11px] font-semibold uppercase tracking-widest">Font — Arabic</p>
-                  <div className="flex flex-col gap-2">
+                </div>
+
+                <div className="border-t border-ink/[.08] pt-5">
+                  <Label>Arabic text</Label>
+                  <textarea
+                    value={textDraftAr}
+                    onChange={(e) => setTextDraftAr(e.target.value)}
+                    placeholder="اكتب هنا"
+                    dir="rtl"
+                    className="min-h-[64px] w-full resize-none rounded-xl border-[1.5px] border-ink/[.14] bg-white px-3.5 py-3 text-right text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/25"
+                  />
+                  <div className="mt-2.5 flex flex-col gap-2">
                     {arFonts.map((font) => (
                       <button
                         key={font.id}
@@ -492,6 +503,7 @@ export function DesignerPage() {
                         </span>
                       </button>
                     ))}
+                    {arFonts.length === 0 && <p className="text-sm text-ink/50">No Arabic fonts yet.</p>}
                   </div>
                 </div>
               </div>

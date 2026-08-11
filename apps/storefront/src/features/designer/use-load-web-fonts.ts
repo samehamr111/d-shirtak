@@ -1,34 +1,30 @@
-import { useEffect, useState } from "react";
+import { useMemo, useRef } from "react";
 import type { FontDto } from "@d-shirtak/shared";
 
-/** Loads each admin-uploaded font via the FontFace API so both the canvas and the font picker
- *  UI can render text in it immediately, without needing a stylesheet per font. */
-export function useLoadWebFonts(fonts: FontDto[] | undefined): boolean {
-  const [ready, setReady] = useState(false);
+/** Loads a single admin-uploaded font via the FontFace API, on demand, so the canvas and font
+ *  picker UI can render it once the user actually chooses to use it. Fonts are only ever fetched
+ *  when needed — e.g. picking an Arabic font never pulls the English font files, and vice versa —
+ *  and each font is loaded at most once per session. */
+export function useFontLoader(): (font: FontDto) => Promise<void> {
+  const cache = useRef(new Map<string, Promise<void>>());
 
-  useEffect(() => {
-    if (!fonts || fonts.length === 0) {
-      setReady(true);
-      return;
-    }
-    let cancelled = false;
-    Promise.all(
-      fonts.map(async (font) => {
-        try {
-          const face = new FontFace(font.fontFamily, `url(${font.fileUrl})`);
-          const loaded = await face.load();
-          document.fonts.add(loaded);
-        } catch {
-          // font failed to load — the picker will still list it, falling back to the browser default
-        }
-      }),
-    ).finally(() => {
-      if (!cancelled) setReady(true);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [fonts]);
-
-  return ready;
+  return useMemo(
+    () => (font: FontDto) => {
+      let promise = cache.current.get(font.id);
+      if (!promise) {
+        promise = (async () => {
+          try {
+            const face = new FontFace(font.fontFamily, `url(${font.fileUrl})`);
+            const loaded = await face.load();
+            document.fonts.add(loaded);
+          } catch {
+            // font failed to load — text using it will fall back to the browser default
+          }
+        })();
+        cache.current.set(font.id, promise);
+      }
+      return promise;
+    },
+    [],
+  );
 }
