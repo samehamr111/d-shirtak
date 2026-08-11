@@ -41,6 +41,7 @@ export function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-ink/5 p-4">
       <form onSubmit={handleSubmit} className="w-full max-w-sm rounded-lg bg-white p-6 shadow-pop">
+        <img src="/logo-stacked.png" alt="D-Shirtak" className="mx-auto mb-4 h-14 w-auto" />
         <h1 className="mb-1 text-xl font-semibold text-ink">D-Shirtak Admin</h1>
         <p className="mb-5 text-sm text-ink/60">Sign in with your admin account.</p>
 

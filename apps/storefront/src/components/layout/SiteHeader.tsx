@@ -45,7 +45,7 @@ export function SiteHeader() {
   const itemCount = cart?.items.reduce((sum, i) => sum + i.quantity, 0) ?? 0;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-ink/10 bg-paper/90 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-ink/10 bg-white">
       <Container className="flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center">
           <img src="/logo-color.png" alt="D-Shirtak" className="h-9 w-auto" />
@@ -96,7 +96,7 @@ export function SiteHeader() {
       </Container>
 
       {open && (
-        <div className="border-t border-ink/10 bg-paper md:hidden">
+        <div className="border-t border-ink/10 bg-white md:hidden">
           <Container className="flex flex-col gap-1 py-4">
             {navLinks.map((link) => {
               const active = isNavLinkActive(link.to, location.pathname, location.search);

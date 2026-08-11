@@ -33,7 +33,8 @@ export function LoginPage() {
   return (
     <Container className="flex min-h-[70vh] items-center justify-center py-16">
       <div className="w-full max-w-sm">
-        <h1 className="font-display text-4xl">Welcome back</h1>
+        <img src="/logo-stacked.png" alt="D-Shirtak" className="mx-auto h-16 w-auto" />
+        <h1 className="mt-6 font-display text-4xl">Welcome back</h1>
         <p className="mt-2 text-sm text-ink/60">Sign in to see your orders and saved designs.</p>
 
         <form onSubmit={onSubmit} className="mt-8 space-y-4">
