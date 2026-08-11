@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import type { AddressInput } from "@d-shirtak/shared";
 import { Container } from "../components/ui/Container";
 import { Button } from "../components/ui/Button";
 import { Field, Input } from "../components/ui/Field";
+import { LinkButton } from "../components/ui/LinkButton";
 import { PageSpinner } from "../components/ui/Spinner";
 import { useAddresses } from "../features/addresses/addresses-api";
+import { useAuth } from "../features/auth/auth-context";
 import { useCart } from "../features/cart/cart-api";
 import { usePlaceOrder } from "../features/orders/orders-api";
 import { describeError } from "../lib/errors";
@@ -25,6 +27,8 @@ const emptyAddress: AddressInput = {
 
 export function CheckoutPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { status } = useAuth();
   const { data: addresses, isLoading: loadingAddresses } = useAddresses();
   const { data: cart, isLoading: loadingCart } = useCart();
   const placeOrder = usePlaceOrder();
@@ -33,7 +37,28 @@ export function CheckoutPage() {
   const [newAddress, setNewAddress] = useState<AddressInput>(emptyAddress);
   const [error, setError] = useState<string | null>(null);
 
-  if (loadingAddresses || loadingCart) return <PageSpinner />;
+  // Orders (and the cart rows behind them) belong to a real account -- this is the one point in
+  // the guest flow where signing in is actually required. Everything up to here (browsing,
+  // designing, adding to cart) works without an account; logging in here also migrates whatever
+  // was sitting in the local guest cart onto the server cart automatically.
+  if (status === "guest") {
+    return (
+      <Container className="flex min-h-[50vh] flex-col items-center justify-center text-center">
+        <h1 className="font-display text-5xl tracking-wide">ALMOST THERE</h1>
+        <p className="mt-2 max-w-sm text-ink/60">Sign in to finish your order — your cart is saved and will be waiting.</p>
+        <div className="mt-6 flex items-center gap-4">
+          <LinkButton to="/login" state={{ from: location }}>
+            Sign In
+          </LinkButton>
+          <LinkButton to="/signup" state={{ from: location }} variant="outline">
+            Create Account
+          </LinkButton>
+        </div>
+      </Container>
+    );
+  }
+
+  if (status === "loading" || loadingAddresses || loadingCart) return <PageSpinner />;
 
   const effectiveSelection = selectedAddressId ?? addresses?.find((a) => a.isDefault)?.id ?? addresses?.[0]?.id ?? "new";
   const items = cart?.items ?? [];

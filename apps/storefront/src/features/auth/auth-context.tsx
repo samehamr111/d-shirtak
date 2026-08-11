@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { AuthResponseDto, AuthUserDto, LoginInput, SignupInput } from "@d-shirtak/shared";
 import { api, setAccessToken } from "../../lib/api-client";
+import { flushLocalCartToServer } from "../cart/guest-cart-sync";
 
 type AuthStatus = "loading" | "authenticated" | "guest";
 
@@ -45,12 +46,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setAccessToken(res.accessToken);
         setUser(res.user);
         setStatus("authenticated");
+        // Best-effort: migrate anything they added to the cart before logging in. A failure here
+        // (e.g. a variant went out of stock) shouldn't block the login that already succeeded.
+        await flushLocalCartToServer().catch(() => undefined);
       },
       signup: async (input) => {
         const res = await api.post<AuthResponseDto>("/auth/signup", input);
         setAccessToken(res.accessToken);
         setUser(res.user);
         setStatus("authenticated");
+        await flushLocalCartToServer().catch(() => undefined);
       },
       logout: async () => {
         await api.post("/auth/logout").catch(() => undefined);

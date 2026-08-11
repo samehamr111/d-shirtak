@@ -11,18 +11,6 @@ export function CartPage() {
   const updateItem = useUpdateCartItem();
   const removeItem = useRemoveCartItem();
 
-  if (status === "guest") {
-    return (
-      <Container className="flex min-h-[50vh] flex-col items-center justify-center text-center">
-        <h1 className="font-display text-5xl tracking-wide">YOUR CART</h1>
-        <p className="mt-2 text-ink/60">Sign in to see what's in your cart.</p>
-        <LinkButton to="/login" className="mt-6">
-          Sign In
-        </LinkButton>
-      </Container>
-    );
-  }
-
   if (status === "loading" || isLoading) return <PageSpinner />;
 
   const items = cart?.items ?? [];
@@ -129,6 +117,9 @@ export function CartPage() {
             <LinkButton to="/checkout" size="lg" className="w-full">
               Checkout →
             </LinkButton>
+            {status === "guest" && (
+              <p className="mt-3 text-center text-xs text-ink/45">You'll sign in at checkout — your cart stays right here.</p>
+            )}
           </div>
           <div className="flex items-center justify-center bg-ink px-5 py-3.5">
             <span className="font-mono text-[10.5px] tracking-wide text-white/70">CASH ON DELIVERY · PAY ON ARRIVAL</span>

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { Container } from "../components/ui/Container";
 import { Button } from "../components/ui/Button";
 import { LinkButton } from "../components/ui/LinkButton";
@@ -14,7 +14,6 @@ export function ProductPage() {
   const { slug } = useParams();
   const { data: product, isLoading, isError } = useProduct(slug);
   const { status } = useAuth();
-  const navigate = useNavigate();
   const addToCart = useAddToCart();
 
   const [colorId, setColorId] = useState<string | null>(null);
@@ -32,6 +31,7 @@ export function ProductPage() {
     [product, activeColorId, activeSizeId],
   );
   const activeColor = product?.colors.find((c) => c.colorId === activeColorId);
+  const activeSize = product?.sizes.find((s) => s.sizeId === activeSizeId);
 
   if (isLoading) return <PageSpinner />;
   if (isError || !product) {
@@ -39,14 +39,28 @@ export function ProductPage() {
   }
 
   async function handleAddToCart() {
-    if (!variant) return;
-    if (status !== "authenticated") {
-      navigate("/login");
-      return;
-    }
+    if (!variant || !product) return;
     setMessage(null);
     try {
-      await addToCart.mutateAsync({ productVariantId: variant.id, quantity });
+      await addToCart.mutateAsync({
+        productVariantId: variant.id,
+        quantity,
+        guestSnapshot:
+          status === "authenticated"
+            ? undefined
+            : {
+                productName: product.name,
+                colorName: activeColor?.color.name ?? "",
+                sizeName: activeSize?.size.name ?? "",
+                imageUrl: activeColor?.frontImageUrl ?? "",
+                unitPrice: variant.price,
+                stockQuantity: variant.stockQuantity,
+                frontDesignPreviewUrl: null,
+                backDesignPreviewUrl: null,
+                frontDesignJson: null,
+                backDesignJson: null,
+              },
+      });
       setMessage({ text: "Added to your cart.", isError: false });
     } catch (err) {
       setMessage({ text: describeError(err, "Couldn't add that to your cart."), isError: true });

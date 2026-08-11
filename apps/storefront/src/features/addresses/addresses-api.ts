@@ -1,11 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { AddressDto, AddressInput } from "@d-shirtak/shared";
 import { api } from "../../lib/api-client";
+import { useAuth } from "../auth/auth-context";
 
 const KEY = ["addresses"];
 
 export function useAddresses() {
-  return useQuery({ queryKey: KEY, queryFn: () => api.get<AddressDto[]>("/addresses") });
+  const { status } = useAuth();
+  return useQuery({ queryKey: KEY, queryFn: () => api.get<AddressDto[]>("/addresses"), enabled: status === "authenticated" });
 }
 
 export function useCreateAddress() {

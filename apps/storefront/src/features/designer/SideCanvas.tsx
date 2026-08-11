@@ -268,11 +268,18 @@ export const SideCanvas = forwardRef<SideCanvasHandle, SideCanvasProps>(function
     [printArea],
   );
 
+  // Fabric replaces this <canvas> with its own wrapper div (and a second, internally-managed
+  // "upper canvas" for the selection layer) as soon as it initializes, copying whatever class the
+  // element had AT THAT MOMENT onto those internal layers -- it never re-syncs after. Toggling
+  // `hidden`/`block` on the canvas itself therefore only ever affects the very first render: once
+  // Fabric has taken over, this node is nested inside a wrapper Fabric owns, not positioned by us,
+  // so it just falls into normal document flow (stacking below the other side, clipped by the
+  // parent's overflow:hidden) regardless of later visibility changes. Owning the visibility toggle
+  // on a plain div we keep control of -- one level up from anything Fabric touches -- sidesteps
+  // that entirely.
   return (
-    <canvas
-      ref={canvasElRef}
-      className={visible ? "block h-full w-full" : "hidden"}
-      aria-label="Design canvas"
-    />
+    <div className={visible ? "absolute inset-0" : "hidden"}>
+      <canvas ref={canvasElRef} aria-label="Design canvas" />
+    </div>
   );
 });
