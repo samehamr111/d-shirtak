@@ -44,6 +44,12 @@ export const SideCanvas = forwardRef<SideCanvasHandle, SideCanvasProps>(function
   const fabricRef = useRef<Canvas | null>(null);
   const guideRef = useRef<Rect | null>(null);
   const selectedRef = useRef<IText | null>(null);
+  // Callers (e.g. DesignerPage) pass onBackgroundError as an inline arrow function, which is a
+  // new reference every render. Keeping it out of the image-load effect's dependency array via a
+  // ref -- rather than listing it there -- stops that effect from re-fetching the background
+  // image (a real network request) on every unrelated re-render of the parent page.
+  const onBackgroundErrorRef = useRef(onBackgroundError);
+  onBackgroundErrorRef.current = onBackgroundError;
 
   useEffect(() => {
     if (!canvasElRef.current) return;
@@ -94,7 +100,7 @@ export const SideCanvas = forwardRef<SideCanvasHandle, SideCanvasProps>(function
         // A CORS-blocked or 404'd image resolves as a zero-size FabricImage instead of
         // rejecting — catch that here too, not just the .catch() below.
         if (!img.width || !img.height) {
-          onBackgroundError?.();
+          onBackgroundErrorRef.current?.();
           return;
         }
         img.set({
@@ -111,12 +117,12 @@ export const SideCanvas = forwardRef<SideCanvasHandle, SideCanvasProps>(function
         canvas.renderAll();
       })
       .catch(() => {
-        if (!cancelled) onBackgroundError?.();
+        if (!cancelled) onBackgroundErrorRef.current?.();
       });
     return () => {
       cancelled = true;
     };
-  }, [backgroundUrl, onBackgroundError]);
+  }, [backgroundUrl]);
 
   useEffect(() => {
     const canvas = fabricRef.current;
