@@ -23,6 +23,21 @@ const DEFAULT_TEXT_STYLE: TextStyle = { fontFamily: "sans-serif", fontSize: 48, 
 const SWATCH_COLORS = ["#111111", "#ffffff", "#dc2626", "#1e3a8a", "#f8471a", "#16a34a", "#facc15"];
 const AR_PREVIEW_PLACEHOLDER = "تصميمك";
 
+// A guest who hits "Add to Cart" gets sent to log in first (carts/designs require a real user
+// row). Without this, navigating away unmounts the canvas and throws the whole design away.
+// Stashing it here lets the designer restore it -- and finish the add-to-cart -- once they're
+// back and authenticated.
+const PENDING_DESIGN_KEY = "dshirtak:pendingDesign";
+
+interface PendingDesignPayload {
+  productSlug: string;
+  colorId: string | null;
+  sizeId: string | null;
+  side: Side;
+  frontJson: Record<string, unknown> | null;
+  backJson: Record<string, unknown> | null;
+}
+
 function ShirtIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -85,6 +100,9 @@ export function DesignerPage() {
   const [selection, setSelection] = useState<{ isText: boolean; style?: TextStyle } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [restoreMessage, setRestoreMessage] = useState<string | null>(null);
+  const [autoAddPending, setAutoAddPending] = useState(false);
+  const restoreAttemptedRef = useRef(false);
 
   const frontRef = useRef<SideCanvasHandle>(null);
   const backRef = useRef<SideCanvasHandle>(null);
@@ -98,6 +116,33 @@ export function DesignerPage() {
     }
   }, [fonts]);
 
+  // Restore a design that was stashed before a guest got sent to log in, then pick up right
+  // where "Add to Cart" left off.
+  useEffect(() => {
+    if (restoreAttemptedRef.current || status !== "authenticated" || !product) return;
+    restoreAttemptedRef.current = true;
+    const raw = sessionStorage.getItem(PENDING_DESIGN_KEY);
+    if (!raw) return;
+    sessionStorage.removeItem(PENDING_DESIGN_KEY);
+    let pending: PendingDesignPayload;
+    try {
+      pending = JSON.parse(raw);
+    } catch {
+      return;
+    }
+    if (pending.productSlug !== product.slug) return;
+    if (pending.colorId) setColorId(pending.colorId);
+    if (pending.sizeId) setSizeId(pending.sizeId);
+    setSide(pending.side);
+    setRestoreMessage("Welcome back — restoring the design you were working on…");
+    (async () => {
+      if (pending.frontJson) await frontRef.current?.loadJson(pending.frontJson);
+      if (pending.backJson) await backRef.current?.loadJson(pending.backJson);
+      setRestoreMessage("Design restored — adding it to your cart…");
+      setAutoAddPending(true);
+    })();
+  }, [status, product]);
+
   const activeColorId = colorId ?? product?.colors[0]?.colorId ?? null;
   const activeSizeId = sizeId ?? product?.sizes[0]?.sizeId ?? null;
   const activeColor = product?.colors.find((c) => c.colorId === activeColorId);
@@ -106,6 +151,16 @@ export function DesignerPage() {
     () => product?.variants.find((v) => v.colorId === activeColorId && v.sizeId === activeSizeId) ?? null,
     [product, activeColorId, activeSizeId],
   );
+
+  useEffect(() => {
+    if (!autoAddPending || !variant) return;
+    setAutoAddPending(false);
+    // handleAddToCart is a fresh closure every render (has the current variant/refs); referencing
+    // it here rather than in the effect above avoids acting on a stale variant from before the
+    // restored color/size selection took effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    handleAddToCart();
+  }, [autoAddPending, variant]);
 
   const enFonts = fonts?.filter((f) => f.language === "EN") ?? [];
   const arFonts = fonts?.filter((f) => f.language === "AR") ?? [];
@@ -166,13 +221,23 @@ export function DesignerPage() {
   }
 
   async function handleAddToCart() {
-    if (!variant) return;
+    if (!variant || !product) return;
     if (status !== "authenticated") {
+      const payload: PendingDesignPayload = {
+        productSlug: product.slug,
+        colorId: activeColorId,
+        sizeId: activeSizeId,
+        side,
+        frontJson: frontRef.current?.hasContent() ? frontRef.current.exportJson() : null,
+        backJson: backRef.current?.hasContent() ? backRef.current.exportJson() : null,
+      };
+      sessionStorage.setItem(PENDING_DESIGN_KEY, JSON.stringify(payload));
       navigate("/login", { state: { from: location } });
       return;
     }
     setBusy(true);
     setError(null);
+    setRestoreMessage(null);
     try {
       let frontDesignId: string | undefined;
       let backDesignId: string | undefined;
@@ -513,6 +578,7 @@ export function DesignerPage() {
 
         <div className="sticky bottom-0 z-10 flex items-center justify-end gap-4 border-t border-ink/[.08] bg-white px-6 py-4">
           {error && <p className="text-sm font-medium text-red-600">{error}</p>}
+          {!error && restoreMessage && <p className="text-sm font-medium text-brand-700">{restoreMessage}</p>}
           <Button size="lg" className="animate-glow" disabled={!variant || busy} onClick={handleAddToCart}>
             {busy ? "Saving your design…" : `Add to Cart — EGP ${(variant?.price ?? product.basePrice).toFixed(0)}`}
           </Button>

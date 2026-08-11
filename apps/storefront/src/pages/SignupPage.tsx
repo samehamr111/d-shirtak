@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Container } from "../components/ui/Container";
 import { Button } from "../components/ui/Button";
 import { Field, Input } from "../components/ui/Field";
@@ -10,6 +10,7 @@ import { describeError } from "../lib/errors";
 export function SignupPage() {
   const { signup } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,7 +23,8 @@ export function SignupPage() {
     setLoading(true);
     try {
       await signup({ username, email, password });
-      navigate("/account/orders", { replace: true });
+      const from = (location.state as { from?: { pathname: string; search: string } } | null)?.from;
+      navigate(from ? `${from.pathname}${from.search}` : "/account/orders", { replace: true });
     } catch (err) {
       setError(describeError(err, "Something went wrong. Try again."));
     } finally {

@@ -126,6 +126,19 @@ export const SideCanvas = forwardRef<SideCanvasHandle, SideCanvasProps>(function
 
   useEffect(() => {
     const canvas = fabricRef.current;
+    // The canvas element is CSS `display:none` while its side isn't active. Fabric computes its
+    // wrapper/container sizing from the element's live layout box, so a canvas that was hidden
+    // when the background image finished loading can end up stuck at zero size -- it never
+    // actually draws once revealed, even though the fetch succeeded and no error ever fired.
+    // Re-applying the CSS dimensions and forcing a render once the element is visible again fixes
+    // that without needing to recreate the canvas.
+    if (!canvas || !visible) return;
+    canvas.setDimensions({ width: "100%", height: "100%" }, { cssOnly: true });
+    canvas.requestRenderAll();
+  }, [visible]);
+
+  useEffect(() => {
+    const canvas = fabricRef.current;
     if (!canvas || !printArea) return;
 
     if (guideRef.current) {

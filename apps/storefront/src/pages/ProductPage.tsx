@@ -21,6 +21,7 @@ export function ProductPage() {
   const [sizeId, setSizeId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [side, setSide] = useState<"front" | "back">("front");
+  const [view, setView] = useState<"flat" | "model">("flat");
   const [message, setMessage] = useState<{ text: string; isError: boolean } | null>(null);
 
   const activeColorId = colorId ?? product?.colors[0]?.colorId ?? null;
@@ -52,7 +53,13 @@ export function ProductPage() {
     }
   }
 
-  const image = activeColor && (side === "front" ? activeColor.modelFrontImageUrl ?? activeColor.frontImageUrl : activeColor.modelBackImageUrl ?? activeColor.backImageUrl);
+  // The flat image is the actual print/mockup for this color; the model image (when the admin
+  // has generated one) is a photo of it worn -- a lifestyle shot, not something a customer can
+  // design onto. Show both, defaulting to the real print rather than silently swapping one for
+  // the other.
+  const flatImage = activeColor && (side === "front" ? activeColor.frontImageUrl : activeColor.backImageUrl);
+  const modelImage = activeColor && (side === "front" ? activeColor.modelFrontImageUrl : activeColor.modelBackImageUrl);
+  const image = view === "model" && modelImage ? modelImage : flatImage;
 
   return (
     <Container className="py-8">
@@ -88,6 +95,26 @@ export function ProductPage() {
                   Back
                 </button>
               </div>
+              {modelImage && (
+                <div className="flex gap-1.5 rounded-full bg-paper p-1.5">
+                  <button
+                    onClick={() => setView("flat")}
+                    className={`rounded-full px-4 py-2.5 text-xs font-semibold transition-colors ${
+                      view === "flat" ? "bg-ink text-paper" : "text-ink/55 hover:bg-ink/5"
+                    }`}
+                  >
+                    Print
+                  </button>
+                  <button
+                    onClick={() => setView("model")}
+                    className={`rounded-full px-4 py-2.5 text-xs font-semibold transition-colors ${
+                      view === "model" ? "bg-ink text-paper" : "text-ink/55 hover:bg-ink/5"
+                    }`}
+                  >
+                    On Model
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
