@@ -12,7 +12,7 @@ import { externalizeDesign } from "../features/cart/externalize-guest-design";
 import { useAuth } from "../features/auth/auth-context";
 import { Container } from "../components/ui/Container";
 import { Button } from "../components/ui/Button";
-import { PageSpinner, InlineSpinner } from "../components/ui/Spinner";
+import { PageSpinner, InlineSpinner, Spinner } from "../components/ui/Spinner";
 import { Sparkle } from "../components/ui/ShirtMark";
 import { ImageOrPlaceholder } from "../components/ui/ImageOrPlaceholder";
 import { api } from "../lib/api-client";
@@ -99,6 +99,10 @@ export function DesignerPage() {
   const [textStyle, setTextStyle] = useState<TextStyle>(DEFAULT_TEXT_STYLE);
   const [selection, setSelection] = useState<{ isText: boolean; style?: TextStyle } | null>(null);
   const [busy, setBusy] = useState(false);
+  // Adding an image (an upload, a design-library pick, or the preset-design auto-add) means
+  // waiting on the browser to actually load/decode it before it shows up on the canvas -- with
+  // no feedback during that gap, impatient clicks piled up multiple copies onto the canvas.
+  const [addingElement, setAddingElement] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Mirrors the backend's per-element surcharge so the price shown here matches what actually
   // gets charged once this is added to cart. Refs don't trigger re-renders on their own, so this
@@ -131,13 +135,15 @@ export function DesignerPage() {
     const asset = designAssets.find((a) => a.id === presetAssetId);
     if (!asset) return;
     presetAppliedRef.current = true;
+    setAddingElement(true);
     frontRef.current
       ?.addImageFromUrl(asset.imageUrl, true)
       .then(syncElementCounts)
       .catch((err) => {
         console.error("addImageFromUrl (preset design) failed:", err);
         setError("Couldn't add that design to the canvas automatically — pick it from the Designs tab instead.");
-      });
+      })
+      .finally(() => setAddingElement(false));
   }, [presetAssetId, designAssets]);
 
   const activeColorId = colorId ?? product?.colors[0]?.colorId ?? null;
@@ -169,13 +175,15 @@ export function DesignerPage() {
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === "string") {
+        setAddingElement(true);
         activeCanvasRef.current
           ?.addImageFromUrl(reader.result, false)
           .then(syncElementCounts)
           .catch((err) => {
             console.error("addImageFromUrl (upload) failed:", err);
             setError("Couldn't add that image to the canvas. Try a different file.");
-          });
+          })
+          .finally(() => setAddingElement(false));
       }
     };
     reader.readAsDataURL(file);
@@ -356,6 +364,12 @@ export function DesignerPage() {
                 />
               </div>
 
+              {addingElement && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-white/70 backdrop-blur-[1px]">
+                  <Spinner className="h-12 w-12" />
+                </div>
+              )}
+
               {selection && (
                 <div className="absolute -top-[52px] left-1/2 flex -translate-x-1/2 gap-1.5 rounded-full bg-ink p-1.5 shadow-pop">
                   <button
@@ -497,11 +511,21 @@ export function DesignerPage() {
 
             {tab === "design" && (
               <div className="space-y-5">
-                <label className="flex cursor-pointer flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-brand-500/60 bg-brand-500/[.06] p-5 text-center">
+                <label
+                  className={`flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-brand-500/60 bg-brand-500/[.06] p-5 text-center ${
+                    addingElement ? "pointer-events-none opacity-50" : "cursor-pointer"
+                  }`}
+                >
                   <Sparkle size={22} className="animate-twinkle text-brand-500" />
                   <span className="text-[13px] font-semibold text-brand-700">Upload your own art</span>
                   <span className="text-[11.5px] text-ink/50">PNG, JPG or WEBP</span>
-                  <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleUploadFile} />
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="hidden"
+                    disabled={addingElement}
+                    onChange={handleUploadFile}
+                  />
                 </label>
 
                 <div>
@@ -530,14 +554,17 @@ export function DesignerPage() {
                     {designAssets?.map((asset) => (
                       <button
                         key={asset.id}
+                        disabled={addingElement}
                         onClick={() => {
+                          setAddingElement(true);
                           activeCanvasRef.current
                             ?.addImageFromUrl(asset.imageUrl, true)
                             .then(syncElementCounts)
-                            .catch(() => setError("Couldn't add that design to the canvas. Try again."));
+                            .catch(() => setError("Couldn't add that design to the canvas. Try again."))
+                            .finally(() => setAddingElement(false));
                           setDrawerOpen(false);
                         }}
-                        className="flex h-[100px] items-center justify-center rounded-xl border border-ink/[.08] bg-paper p-3 transition-transform hover:scale-[1.04]"
+                        className="flex h-[100px] items-center justify-center rounded-xl border border-ink/[.08] bg-paper p-3 transition-transform hover:scale-[1.04] disabled:opacity-40 disabled:pointer-events-none"
                         title={asset.name}
                       >
                         <ImageOrPlaceholder

@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import compression from "compression";
 import cookieParser from "cookie-parser";
 import path from "node:path";
 import { env } from "../../infrastructure/config/env.js";
@@ -24,6 +25,10 @@ export function createApp() {
   const app = express();
 
   app.use(cors({ origin: env.corsOrigins, credentials: true }));
+  // Compresses JSON responses (catalog/admin listings can be sizable) -- already-compressed
+  // formats like images are skipped automatically by the package's default filter, so this
+  // doesn't waste CPU re-compressing /uploads.
+  app.use(compression());
   app.use(cookieParser());
   app.use(express.json({ limit: "10mb" }));
   // Every uploaded file gets a fresh random name and is never overwritten -- safe to cache

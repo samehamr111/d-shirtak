@@ -39,18 +39,18 @@ export class AdminOrderService {
     const pendingCount = allOrders.filter((o) => o.status === "PENDING").length;
     const avgOrderValue = revenueOrders.length > 0 ? totalRevenue / revenueOrders.length : 0;
 
+    const variantIds = [...new Set(revenueOrders.flatMap((o) => o.items.map((i) => i.productVariantId)))];
+    const variants = await this.variants.findManyByIds(variantIds);
+    const productIds = [...new Set(variants.map((v) => v.productId))];
+    const products = await this.products.findManyByIds(productIds);
+    const productCostById = new Map(products.map((p) => [p.id, p.costPrice]));
+    const costByVariant = new Map(variants.map((v) => [v.id, productCostById.get(v.productId) ?? null]));
+
     let totalCost = 0;
     let hasIncompleteCostData = false;
-    const costByVariant = new Map<string, number | null>();
     for (const order of revenueOrders) {
       for (const item of order.items) {
-        let cost = costByVariant.get(item.productVariantId);
-        if (cost === undefined) {
-          const variant = await this.variants.findById(item.productVariantId);
-          const product = variant ? await this.products.findById(variant.productId) : null;
-          cost = product?.costPrice ?? null;
-          costByVariant.set(item.productVariantId, cost);
-        }
+        const cost = costByVariant.get(item.productVariantId) ?? null;
         if (cost === null) {
           hasIncompleteCostData = true;
         } else {

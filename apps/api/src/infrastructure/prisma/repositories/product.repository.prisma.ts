@@ -28,7 +28,17 @@ const detailInclude = {
   variants: true,
 } satisfies Prisma.ProductInclude;
 
+// listPublic (the storefront catalog listing) only ever reads .colors and .variants -- see
+// toSummary() in catalog.service.ts -- so fetching every size's full print-area geometry (11
+// numeric columns per size, times every size, times every product) on every catalog page load
+// was pure waste. Sizes are only actually needed on the single-product/detail fetch.
+const listInclude = {
+  colors: { include: { color: true } },
+  variants: true,
+} satisfies Prisma.ProductInclude;
+
 type ProductWithDetail = Prisma.ProductGetPayload<{ include: typeof detailInclude }>;
+type ProductWithListDetail = Prisma.ProductGetPayload<{ include: typeof listInclude }>;
 
 function toProduct(
   row: { basePrice: Prisma.Decimal; costPrice: Prisma.Decimal | null; garmentType: string; productType: string },
@@ -63,6 +73,15 @@ function toDetail(row: ProductWithDetail): ProductDetail {
   };
 }
 
+function toListDetail(row: ProductWithListDetail): ProductDetail {
+  return {
+    ...row,
+    ...toProduct(row),
+    sizes: [],
+    variants: row.variants.map(toVariant),
+  };
+}
+
 export class PrismaProductRepository implements IProductRepository {
   constructor(private readonly db: PrismaClient) {}
 
@@ -73,10 +92,10 @@ export class PrismaProductRepository implements IProductRepository {
         category: filter.categorySlug ? { slug: filter.categorySlug } : undefined,
         name: filter.search ? { contains: filter.search } : undefined,
       },
-      include: detailInclude,
+      include: listInclude,
       orderBy: { createdAt: "desc" },
     });
-    return rows.map(toDetail);
+    return rows.map(toListDetail);
   }
 
   async listAdmin(): Promise<ProductDetail[]> {
@@ -95,6 +114,12 @@ export class PrismaProductRepository implements IProductRepository {
   async findBySlug(slug: string): Promise<ProductDetail | null> {
     const row = await this.db.product.findUnique({ where: { slug }, include: detailInclude });
     return row ? toDetail(row) : null;
+  }
+
+  async findManyByIds(ids: string[]): Promise<Product[]> {
+    if (ids.length === 0) return [];
+    const rows = await this.db.product.findMany({ where: { id: { in: ids } } });
+    return rows.map((row) => ({ ...row, ...toProduct(row) }));
   }
 
   async create(input: CreateProductInput): Promise<Product> {
@@ -166,6 +191,11 @@ export class PrismaProductVariantRepository implements IProductVariantRepository
   async findBySku(sku: string): Promise<ProductVariant | null> {
     const row = await this.db.productVariant.findUnique({ where: { sku } });
     return row ? toVariant(row) : null;
+  }
+  async findManyByIds(ids: string[]): Promise<ProductVariant[]> {
+    if (ids.length === 0) return [];
+    const rows = await this.db.productVariant.findMany({ where: { id: { in: ids } } });
+    return rows.map(toVariant);
   }
   async create(input: CreateProductVariantInput): Promise<ProductVariant> {
     const row = await this.db.productVariant.create({ data: input });

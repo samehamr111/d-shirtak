@@ -13,31 +13,34 @@ export interface ToOrderDtoOptions {
 
 export async function toOrderDto(order: Order, designs: IDesignRepository, options?: ToOrderDtoOptions): Promise<OrderDto> {
   const designAssetsByUrl = options?.designAssetsByUrl;
-  const items: OrderItemDto[] = await Promise.all(
-    order.items.map(async (item) => {
-      const [frontDesign, backDesign] = await Promise.all([
-        item.frontDesignId ? designs.findById(item.frontDesignId) : Promise.resolve(null),
-        item.backDesignId ? designs.findById(item.backDesignId) : Promise.resolve(null),
-      ]);
-      return {
-        id: item.id,
-        productName: item.productNameSnapshot,
-        colorName: item.colorNameSnapshot,
-        sizeName: item.sizeNameSnapshot,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        lineTotal: Math.round(item.unitPrice * item.quantity * 100) / 100,
-        frontDesignPreviewUrl: frontDesign?.previewImageUrl ?? null,
-        backDesignPreviewUrl: backDesign?.previewImageUrl ?? null,
-        garmentType: item.garmentType,
-        colorHex: item.colorHex,
-        frontDesignElements:
-          designAssetsByUrl && frontDesign ? parseDesignElements(frontDesign.canvasJson, designAssetsByUrl) : undefined,
-        backDesignElements:
-          designAssetsByUrl && backDesign ? parseDesignElements(backDesign.canvasJson, designAssetsByUrl) : undefined,
-      };
-    }),
-  );
+  // One batched fetch for every design referenced across every item, instead of up to two
+  // findById round trips per item -- this runs on every order-detail/list response.
+  const designIds = [
+    ...new Set(order.items.flatMap((item) => [item.frontDesignId, item.backDesignId]).filter((id): id is string => Boolean(id))),
+  ];
+  const designById = new Map((await designs.findManyByIds(designIds)).map((d) => [d.id, d]));
+
+  const items: OrderItemDto[] = order.items.map((item) => {
+    const frontDesign = item.frontDesignId ? (designById.get(item.frontDesignId) ?? null) : null;
+    const backDesign = item.backDesignId ? (designById.get(item.backDesignId) ?? null) : null;
+    return {
+      id: item.id,
+      productName: item.productNameSnapshot,
+      colorName: item.colorNameSnapshot,
+      sizeName: item.sizeNameSnapshot,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      lineTotal: Math.round(item.unitPrice * item.quantity * 100) / 100,
+      frontDesignPreviewUrl: frontDesign?.previewImageUrl ?? null,
+      backDesignPreviewUrl: backDesign?.previewImageUrl ?? null,
+      garmentType: item.garmentType,
+      colorHex: item.colorHex,
+      frontDesignElements:
+        designAssetsByUrl && frontDesign ? parseDesignElements(frontDesign.canvasJson, designAssetsByUrl) : undefined,
+      backDesignElements:
+        designAssetsByUrl && backDesign ? parseDesignElements(backDesign.canvasJson, designAssetsByUrl) : undefined,
+    };
+  });
 
   return {
     id: order.id,

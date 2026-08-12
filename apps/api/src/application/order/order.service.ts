@@ -29,18 +29,28 @@ export class OrderService {
     const settings = await this.storeSettings.get();
     const surchargeEgp = settings.customizationSurchargeEgp;
 
+    // Batched instead of one findById/findById/findById-per-row round trip per cart line --
+    // this loop runs on every checkout, so N sequential queries for an N-item cart added up.
+    const variants = await this.variants.findManyByIds([...new Set(cartRows.map((r) => r.productVariantId))]);
+    const variantById = new Map(variants.map((v) => [v.id, v]));
+    const products = await this.products.findManyByIds([...new Set(variants.map((v) => v.productId))]);
+    const productById = new Map(products.map((p) => [p.id, p]));
+    const designIds = [
+      ...new Set(cartRows.flatMap((r) => [r.frontDesignId, r.backDesignId]).filter((id): id is string => Boolean(id))),
+    ];
+    const designs = await this.designs.findManyByIds(designIds);
+    const designById = new Map(designs.map((d) => [d.id, d]));
+
     let subtotalCents = 0;
     const items: PlaceOrderItemInput[] = [];
     for (const row of cartRows) {
-      const variant = await this.variants.findById(row.productVariantId);
+      const variant = variantById.get(row.productVariantId);
       if (!variant) throw new NotFoundError("ProductVariant", row.productVariantId);
-      const product = await this.products.findById(variant.productId);
+      const product = productById.get(variant.productId);
       if (!product) throw new NotFoundError("Product", variant.productId);
 
-      const [frontDesign, backDesign] = await Promise.all([
-        row.frontDesignId ? this.designs.findById(row.frontDesignId) : Promise.resolve(null),
-        row.backDesignId ? this.designs.findById(row.backDesignId) : Promise.resolve(null),
-      ]);
+      const frontDesign = row.frontDesignId ? (designById.get(row.frontDesignId) ?? null) : null;
+      const backDesign = row.backDesignId ? (designById.get(row.backDesignId) ?? null) : null;
       const unitPrice =
         effectiveVariantPrice(variant, product) +
         customizationSurcharge(
