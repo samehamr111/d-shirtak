@@ -27,14 +27,19 @@ export class DesignService {
     const variant = await this.variants.findById(input.productVariantId);
     if (!variant) throw new NotFoundError("ProductVariant", input.productVariantId);
 
-    const preview = await this.fileStorage.saveBase64Image("designs", input.previewImageDataUrl);
+    // A guest's design was already uploaded once (externalizeDesign, to keep it out of
+    // localStorage) -- when their cart flushes to the server post-login it arrives as that
+    // hosted URL already, not fresh base64, so there's nothing left to upload.
+    const previewImageUrl = input.previewImageDataUrl.startsWith("data:")
+      ? (await this.fileStorage.saveBase64Image("designs", input.previewImageDataUrl)).url
+      : input.previewImageDataUrl;
 
     const created = await this.designs.create({
       ownerUserId: userId,
       productVariantId: variant.id,
       side: input.side,
       canvasJson: JSON.stringify(input.canvasJson),
-      previewImageUrl: preview.url,
+      previewImageUrl,
     });
 
     return toDto(created);

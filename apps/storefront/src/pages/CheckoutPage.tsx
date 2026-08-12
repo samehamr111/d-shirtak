@@ -5,7 +5,7 @@ import { Container } from "../components/ui/Container";
 import { Button } from "../components/ui/Button";
 import { Field, Input } from "../components/ui/Field";
 import { LinkButton } from "../components/ui/LinkButton";
-import { PageSpinner } from "../components/ui/Spinner";
+import { PageSpinner, InlineSpinner } from "../components/ui/Spinner";
 import { useAddresses } from "../features/addresses/addresses-api";
 import { useAuth } from "../features/auth/auth-context";
 import { useCart } from "../features/cart/cart-api";
@@ -196,6 +196,7 @@ export function CheckoutPage() {
             disabled={items.length === 0 || placeOrder.isPending}
             onClick={handlePlaceOrder}
           >
+            {placeOrder.isPending && <InlineSpinner />}
             {placeOrder.isPending ? "Placing Order…" : "Place order"}
           </Button>
         </div>

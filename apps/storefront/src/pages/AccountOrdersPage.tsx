@@ -6,7 +6,7 @@ import { PageSpinner } from "../components/ui/Spinner";
 import { OrderStatusBadge } from "../components/OrderStatusBadge";
 import { useMyOrders } from "../features/orders/orders-api";
 import { AccountNav } from "../components/AccountNav";
-import { ShirtMark } from "../components/ui/ShirtMark";
+import { ImageOrPlaceholder } from "../components/ui/ImageOrPlaceholder";
 
 const TIMELINE_STEPS: { status: OrderStatus; label: string }[] = [
   { status: "CONTACTED", label: "Confirmed" },
@@ -55,17 +55,12 @@ function OrderCard({ order, featured = false }: { order: OrderDto; featured?: bo
       className="block rounded-2xl border border-ink/[.08] bg-white p-5 transition-colors hover:border-brand-500/40"
     >
       <div className="flex items-center gap-3.5">
-        <div className="flex h-[62px] w-[54px] shrink-0 items-center justify-center overflow-hidden rounded-lg bg-ink/5">
-          {order.items[0]?.frontDesignPreviewUrl || order.items[0]?.backDesignPreviewUrl ? (
-            <img
-              src={(order.items[0].frontDesignPreviewUrl ?? order.items[0].backDesignPreviewUrl)!}
-              alt=""
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <ShirtMark size={26} className="text-ink/25" />
-          )}
-        </div>
+        <ImageOrPlaceholder
+          src={order.items[0]?.frontDesignPreviewUrl ?? order.items[0]?.backDesignPreviewUrl}
+          alt=""
+          className="h-[62px] w-[54px] shrink-0 overflow-hidden rounded-lg object-cover"
+          iconClassName="h-[26px] w-[26px] text-ink/25"
+        />
         <div className="flex-1">
           <div className="flex flex-wrap items-center gap-2.5">
             <span className="font-semibold">{order.orderNumber}</span>

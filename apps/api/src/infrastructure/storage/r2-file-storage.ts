@@ -3,6 +3,7 @@ import type { Readable } from "node:stream";
 import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { ValidationError } from "../../domain/errors.js";
 import type { IFileStorage, SavedFile, UploadCategory } from "../../domain/ports/file-storage.port.js";
+import { compressImageIfNeeded } from "./compress-image.js";
 
 export interface ProxiedObject {
   body: Readable;
@@ -52,14 +53,16 @@ export class R2FileStorage implements IFileStorage {
   }
 
   async saveBuffer(category: UploadCategory, originalFileName: string, buffer: Buffer): Promise<SavedFile> {
-    const ext = extname(originalFileName);
+    const compressed =
+      category === "fonts" ? { buffer, originalFileName } : await compressImageIfNeeded({ buffer, originalFileName });
+    const ext = extname(compressed.originalFileName);
     const relativePath = `${category}/${randomUUID()}${ext}`;
 
     await this.client.send(
       new PutObjectCommand({
         Bucket: this.bucket,
         Key: relativePath,
-        Body: buffer,
+        Body: compressed.buffer,
         ContentType: contentTypeFor(ext),
         // Every upload gets a fresh random key and is never overwritten -- safe to cache forever.
         CacheControl: "public, max-age=31536000, immutable",

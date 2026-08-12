@@ -12,8 +12,9 @@ import { externalizeDesign } from "../features/cart/externalize-guest-design";
 import { useAuth } from "../features/auth/auth-context";
 import { Container } from "../components/ui/Container";
 import { Button } from "../components/ui/Button";
-import { PageSpinner } from "../components/ui/Spinner";
+import { PageSpinner, InlineSpinner } from "../components/ui/Spinner";
 import { Sparkle } from "../components/ui/ShirtMark";
+import { ImageOrPlaceholder } from "../components/ui/ImageOrPlaceholder";
 import { api } from "../lib/api-client";
 import { describeError } from "../lib/errors";
 
@@ -539,7 +540,13 @@ export function DesignerPage() {
                         className="flex h-[100px] items-center justify-center rounded-xl border border-ink/[.08] bg-paper p-3 transition-transform hover:scale-[1.04]"
                         title={asset.name}
                       >
-                        <img src={asset.imageUrl} alt={asset.name} className="h-full w-full object-contain" />
+                        <ImageOrPlaceholder
+                          src={asset.imageUrl}
+                          alt={asset.name}
+                          loading="lazy"
+                          className="h-full w-full object-contain"
+                          iconClassName="h-1/3 w-1/3 text-ink/20"
+                        />
                       </button>
                     ))}
                     {designAssets?.length === 0 && <p className="col-span-2 text-sm text-ink/50">No designs here yet.</p>}
@@ -649,6 +656,7 @@ export function DesignerPage() {
         <div className="sticky bottom-0 z-10 flex flex-col items-center gap-3 rounded-b-[20px] border-t border-ink/[.08] bg-white px-6 py-4 sm:flex-row sm:justify-end sm:gap-4">
           {error && <p className="text-center text-sm font-medium text-red-600 sm:text-left">{error}</p>}
           <Button size="lg" className="w-full animate-glow sm:w-auto" disabled={!variant || busy} onClick={handleAddToCart}>
+            {busy && <InlineSpinner />}
             {busy ? "Saving your design…" : `Add to Cart — EGP ${(estimatedPrice ?? product.basePrice).toFixed(0)}`}
           </Button>
         </div>

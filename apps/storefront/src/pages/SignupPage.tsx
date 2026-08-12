@@ -4,6 +4,7 @@ import { Container } from "../components/ui/Container";
 import { Button } from "../components/ui/Button";
 import { Field, Input } from "../components/ui/Field";
 import { ShirtMark, Sparkle } from "../components/ui/ShirtMark";
+import { InlineSpinner } from "../components/ui/Spinner";
 import { useAuth } from "../features/auth/auth-context";
 import { describeError } from "../lib/errors";
 
@@ -161,6 +162,7 @@ export function SignupPage() {
               {error && <p className="text-sm font-medium text-red-600">{error}</p>}
 
               <Button type="submit" size="lg" className="w-full" disabled={loading}>
+                {loading && <InlineSpinner />}
                 {loading ? "Sending code…" : "Continue"}
               </Button>
             </form>
@@ -189,6 +191,7 @@ export function SignupPage() {
               {error && <p className="text-sm font-medium text-red-600">{error}</p>}
 
               <Button type="submit" size="lg" className="w-full" disabled={loading || code.length !== 6}>
+                {loading && <InlineSpinner />}
                 {loading ? "Verifying…" : "Verify & Create Account"}
               </Button>
             </form>

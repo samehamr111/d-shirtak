@@ -1,6 +1,7 @@
 import { Link, useLocation, useParams } from "react-router-dom";
 import { Container } from "../components/ui/Container";
 import { PageSpinner } from "../components/ui/Spinner";
+import { ImageOrPlaceholder } from "../components/ui/ImageOrPlaceholder";
 import { OrderStatusBadge } from "../components/OrderStatusBadge";
 import { useMyOrder } from "../features/orders/orders-api";
 
@@ -38,14 +39,25 @@ export function AccountOrderDetailPage() {
           {order.items.map((item) => (
             <li key={item.id} className="flex gap-4 rounded-2xl border border-ink/10 p-4">
               <div className="flex gap-2">
-                {item.frontDesignPreviewUrl && (
-                  <img src={item.frontDesignPreviewUrl} alt="Front design" className="h-24 w-20 rounded-xl object-cover" />
-                )}
-                {item.backDesignPreviewUrl && (
-                  <img src={item.backDesignPreviewUrl} alt="Back design" className="h-24 w-20 rounded-xl object-cover" />
-                )}
-                {!item.frontDesignPreviewUrl && !item.backDesignPreviewUrl && (
-                  <div className="h-24 w-20 rounded-xl bg-ink/5" />
+                {item.frontDesignPreviewUrl || item.backDesignPreviewUrl ? (
+                  <>
+                    {item.frontDesignPreviewUrl && (
+                      <ImageOrPlaceholder
+                        src={item.frontDesignPreviewUrl}
+                        alt="Front design"
+                        className="h-24 w-20 rounded-xl object-cover"
+                      />
+                    )}
+                    {item.backDesignPreviewUrl && (
+                      <ImageOrPlaceholder
+                        src={item.backDesignPreviewUrl}
+                        alt="Back design"
+                        className="h-24 w-20 rounded-xl object-cover"
+                      />
+                    )}
+                  </>
+                ) : (
+                  <ImageOrPlaceholder src={null} alt="" className="h-24 w-20 rounded-xl" />
                 )}
               </div>
               <div className="flex flex-1 flex-col justify-between">

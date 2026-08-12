@@ -5,6 +5,7 @@ import { Button } from "../components/ui/Button";
 import { LinkButton } from "../components/ui/LinkButton";
 import { PageSpinner } from "../components/ui/Spinner";
 import { Sparkle } from "../components/ui/ShirtMark";
+import { ImageOrPlaceholder } from "../components/ui/ImageOrPlaceholder";
 import { useProduct } from "../features/catalog/catalog-api";
 import { useAddToCart } from "../features/cart/cart-api";
 import { useAuth } from "../features/auth/auth-context";
@@ -81,7 +82,12 @@ export function ProductPage() {
         <div>
           <div className="relative rounded-[20px] bg-white p-6 shadow-[0_16px_44px_rgba(4,4,4,0.07)]">
             <div className="relative flex h-[470px] items-center justify-center overflow-hidden rounded-2xl bg-[repeating-linear-gradient(135deg,#f5f4f0_0px,#f5f4f0_10px,#eeece6_10px,#eeece6_20px)]">
-              {image && <img src={image} alt={`${product.name} ${side}`} className="h-full w-full object-contain" />}
+              <ImageOrPlaceholder
+                src={image}
+                alt={`${product.name} ${side}`}
+                className="h-full w-full object-contain"
+                iconClassName="h-1/3 w-1/3 text-ink/20"
+              />
               <span
                 className={`absolute left-3.5 top-3.5 rounded-full px-3 py-2 text-[10px] font-bold uppercase tracking-wide ${
                   product.isCustomizable ? "bg-brand-500 text-ink" : "bg-ink/[.07] text-ink/60"

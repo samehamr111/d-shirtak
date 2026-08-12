@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import type { ProductSummaryDto } from "@d-shirtak/shared";
 import { StarRating } from "./ui/StarRating";
+import { ImageOrPlaceholder } from "./ui/ImageOrPlaceholder";
 import { placeholderRating } from "../lib/placeholder-rating";
 
 const NEW_ARRIVAL_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
@@ -34,13 +35,13 @@ export function ProductCard({
         className="block overflow-hidden rounded-2xl border border-ink/10 bg-white transition-shadow duration-300 group-hover:shadow-[0_18px_40px_rgba(4,4,4,0.1)]"
       >
         <div className="relative aspect-[4/5] overflow-hidden bg-ink/5">
-          {product.thumbnailUrl && (
-            <img
-              src={product.thumbnailUrl}
-              alt={product.name}
-              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-            />
-          )}
+          <ImageOrPlaceholder
+            src={product.thumbnailUrl}
+            alt={product.name}
+            loading={index < 4 ? "eager" : "lazy"}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+            iconClassName="h-1/4 w-1/4 text-ink/20"
+          />
           {!product.inStock && (
             <span className="absolute left-3 top-3 rounded-full bg-ink px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-paper">
               Sold Out

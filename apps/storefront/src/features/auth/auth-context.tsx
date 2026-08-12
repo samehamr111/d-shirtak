@@ -9,6 +9,7 @@ import type {
 } from "@d-shirtak/shared";
 import { api, setAccessToken } from "../../lib/api-client";
 import { flushLocalCartToServer } from "../cart/guest-cart-sync";
+import { localCart } from "../cart/local-cart";
 
 type AuthStatus = "loading" | "authenticated" | "guest";
 
@@ -34,11 +35,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     api
       .post<AuthResponseDto>("/auth/refresh")
-      .then((res) => {
+      .then(async (res) => {
         if (cancelled) return;
         setAccessToken(res.accessToken);
         setUser(res.user);
         setStatus("authenticated");
+        // Safety net: normally the local cart is empty by the time someone's session is already
+        // authenticated, but if a past login/signup flush partially failed, whatever it left
+        // behind is otherwise invisible (the UI only shows the server cart once authenticated) --
+        // retry it here so it isn't stranded forever.
+        if (localCart.getAll().length > 0) await flushLocalCartToServer().catch(() => undefined);
       })
       .catch(() => {
         if (!cancelled) setStatus("guest");

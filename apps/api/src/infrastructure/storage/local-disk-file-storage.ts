@@ -3,6 +3,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { ValidationError } from "../../domain/errors.js";
 import type { IFileStorage, SavedFile, UploadCategory } from "../../domain/ports/file-storage.port.js";
+import { compressImageIfNeeded } from "./compress-image.js";
 
 const BASE64_IMAGE_PATTERN = /^data:image\/(png|jpeg|jpg|webp);base64,(.+)$/;
 
@@ -13,11 +14,13 @@ export class LocalDiskFileStorage implements IFileStorage {
   ) {}
 
   async saveBuffer(category: UploadCategory, originalFileName: string, buffer: Buffer): Promise<SavedFile> {
-    const ext = path.extname(originalFileName) || "";
+    const compressed =
+      category === "fonts" ? { buffer, originalFileName } : await compressImageIfNeeded({ buffer, originalFileName });
+    const ext = path.extname(compressed.originalFileName) || "";
     const fileName = `${randomUUID()}${ext}`;
     const dir = path.join(this.rootDir, category);
     await fs.mkdir(dir, { recursive: true });
-    await fs.writeFile(path.join(dir, fileName), buffer);
+    await fs.writeFile(path.join(dir, fileName), compressed.buffer);
 
     const relativePath = path.posix.join(category, fileName);
     return { url: `${this.publicBaseUrl}/${relativePath}`, relativePath };

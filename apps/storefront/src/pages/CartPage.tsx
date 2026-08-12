@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Container } from "../components/ui/Container";
 import { LinkButton } from "../components/ui/LinkButton";
 import { PageSpinner } from "../components/ui/Spinner";
+import { ImageOrPlaceholder } from "../components/ui/ImageOrPlaceholder";
 import { useAuth } from "../features/auth/auth-context";
 import { useCart, useRemoveCartItem, useUpdateCartItem } from "../features/cart/cart-api";
 
@@ -43,13 +44,11 @@ export function CartPage() {
             const isCustom = item.frontDesignPreviewUrl || item.backDesignPreviewUrl;
             return (
               <li key={item.id} className="flex items-center gap-4 rounded-2xl border border-ink/[.08] bg-white p-4">
-                <div className="h-[100px] w-[92px] shrink-0 overflow-hidden rounded-xl bg-ink/5">
-                  <img
-                    src={item.frontDesignPreviewUrl ?? item.imageUrl}
-                    alt={item.productName}
-                    className="h-full w-full object-cover"
-                  />
-                </div>
+                <ImageOrPlaceholder
+                  src={item.frontDesignPreviewUrl ?? item.imageUrl}
+                  alt={item.productName}
+                  className="h-[100px] w-[92px] shrink-0 overflow-hidden rounded-xl object-cover"
+                />
                 <div className="flex-1">
                   <span
                     className={`inline-block rounded-full px-2.5 py-1 text-[9.5px] font-bold uppercase tracking-wide ${

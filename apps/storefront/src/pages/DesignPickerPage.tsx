@@ -2,6 +2,7 @@ import { useSearchParams } from "react-router-dom";
 import { Container } from "../components/ui/Container";
 import { ProductCard } from "../components/ProductCard";
 import { PageSpinner } from "../components/ui/Spinner";
+import { ImageOrPlaceholder } from "../components/ui/ImageOrPlaceholder";
 import { useDesignAssets, useProducts } from "../features/catalog/catalog-api";
 
 export function DesignPickerPage() {
@@ -24,7 +25,7 @@ export function DesignPickerPage() {
         {presetAsset ? (
           <>
             <div className="mb-4 flex items-center gap-3">
-              <img
+              <ImageOrPlaceholder
                 src={presetAsset.imageUrl}
                 alt={presetAsset.name}
                 className="h-14 w-14 rounded-xl border border-ink/10 bg-white object-contain p-1.5"
