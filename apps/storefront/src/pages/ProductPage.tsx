@@ -192,9 +192,15 @@ export function ProductPage() {
 
           {product.isCustomizable ? (
             <div className="mt-7 flex flex-wrap items-center gap-3.5">
-              <LinkButton to={`/design/${product.slug}`} size="lg" className="animate-glow">
-                Start Designing →
-              </LinkButton>
+              {product.variants.some((v) => v.stockQuantity > 0) ? (
+                <LinkButton to={`/design/${product.slug}`} size="lg" className="animate-glow">
+                  Start Designing →
+                </LinkButton>
+              ) : (
+                <Button size="lg" disabled>
+                  Out of Stock
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="lg"

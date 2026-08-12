@@ -1,6 +1,69 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
-import { Canvas, FabricImage, IText, Rect } from "fabric";
+import { Canvas, FabricImage, FabricObject, InteractiveFabricObject, IText, Rect } from "fabric";
 import { CANVAS_HEIGHT, CANVAS_WIDTH, PX_PER_CM } from "./canvas-constants";
+
+// Fabric's default selection handles (13px, invisible "transparent" corners, a 24px touch
+// target) are sized for mouse precision -- on a phone they're nearly impossible to grab
+// accurately, making resize/rotate feel broken. Bigger, visible, circular handles plus some
+// breathing room around the selection border fix that for every object this canvas creates.
+InteractiveFabricObject.ownDefaults = {
+  ...InteractiveFabricObject.ownDefaults,
+  cornerSize: 22,
+  touchCornerSize: 44,
+  cornerStyle: "circle",
+  transparentCorners: false,
+  cornerColor: "#f8471a",
+  cornerStrokeColor: "#111111",
+  borderColor: "#111111",
+  borderScaleFactor: 2,
+  padding: 8,
+};
+
+/** Keeps a canvas object's rendered bounding box (which accounts for its current scale and
+ *  rotation) inside the print-area guide rect -- nothing the customer places should be able to
+ *  grow or drag past the printable region and end up on a sleeve, seam, or off the garment
+ *  entirely. If the object is simply bigger than the area in some dimension, it gets centered on
+ *  that axis instead of fighting to satisfy both edges at once. */
+function clampPositionToArea(obj: FabricObject, area: Rect): void {
+  const bounds = obj.getBoundingRect();
+  const areaLeft = area.left;
+  const areaTop = area.top;
+  const areaWidth = area.width;
+  const areaHeight = area.height;
+
+  let dx = 0;
+  if (bounds.width > areaWidth) {
+    dx = areaLeft + (areaWidth - bounds.width) / 2 - bounds.left;
+  } else if (bounds.left < areaLeft) {
+    dx = areaLeft - bounds.left;
+  } else if (bounds.left + bounds.width > areaLeft + areaWidth) {
+    dx = areaLeft + areaWidth - (bounds.left + bounds.width);
+  }
+
+  let dy = 0;
+  if (bounds.height > areaHeight) {
+    dy = areaTop + (areaHeight - bounds.height) / 2 - bounds.top;
+  } else if (bounds.top < areaTop) {
+    dy = areaTop - bounds.top;
+  } else if (bounds.top + bounds.height > areaTop + areaHeight) {
+    dy = areaTop + areaHeight - (bounds.top + bounds.height);
+  }
+
+  if (dx !== 0 || dy !== 0) {
+    obj.set({ left: (obj.left ?? 0) + dx, top: (obj.top ?? 0) + dy });
+    obj.setCoords();
+  }
+}
+
+function clampScaleToArea(obj: FabricObject, area: Rect): void {
+  const bounds = obj.getBoundingRect();
+  const scaleFactor = Math.min(1, area.width / bounds.width, area.height / bounds.height);
+  if (scaleFactor < 1) {
+    obj.set({ scaleX: (obj.scaleX ?? 1) * scaleFactor, scaleY: (obj.scaleY ?? 1) * scaleFactor });
+    obj.setCoords();
+  }
+  clampPositionToArea(obj, area);
+}
 
 export interface PrintAreaCm {
   widthCm: number;
@@ -25,6 +88,10 @@ export interface SideCanvasHandle {
   exportPng: () => string;
   exportJson: () => Record<string, unknown>;
   hasContent: () => boolean;
+  /** How many chargeable elements (text blocks, images) are on this side right now -- mirrors
+   *  the backend's countDesignElements so the price shown while designing matches what actually
+   *  gets charged when it's added to cart. */
+  elementCount: () => number;
   loadJson: (json: Record<string, unknown> | null) => Promise<void>;
 }
 
@@ -81,6 +148,21 @@ export const SideCanvas = forwardRef<SideCanvasHandle, SideCanvasProps>(function
     canvas.on("selection:cleared", () => {
       selectedRef.current = null;
       onSelectionChange?.(null);
+    });
+
+    // Nothing the customer places should end up outside the printable area -- otherwise part of
+    // it lands on a sleeve, a seam, or off the garment entirely. Correcting this live, on
+    // object:moving/scaling/rotating, sounds right but isn't: fabric recomputes left/top/scale
+    // from the drag's original anchor plus total pointer distance on every single pointer-move
+    // frame, not incrementally from the previous frame -- so a correction applied this frame gets
+    // silently overwritten by fabric's own recompute on the very next one. The object still
+    // escapes, and now there's wasted work fighting it every frame, which reads as lag. Snapping
+    // back once the gesture actually finishes (object:modified fires once, on release) sidesteps
+    // that fight entirely and is the reliable way to do this in fabric.
+    canvas.on("object:modified", (e) => {
+      if (!e.target || !guideRef.current) return;
+      clampScaleToArea(e.target, guideRef.current);
+      canvas.requestRenderAll();
     });
 
     return () => {
@@ -253,6 +335,11 @@ export const SideCanvas = forwardRef<SideCanvasHandle, SideCanvasProps>(function
         const canvas = fabricRef.current;
         if (!canvas) return false;
         return canvas.getObjects().some((obj) => obj !== guideRef.current);
+      },
+      elementCount() {
+        const canvas = fabricRef.current;
+        if (!canvas) return 0;
+        return canvas.getObjects().filter((obj) => obj !== guideRef.current).length;
       },
       async loadJson(json) {
         const canvas = fabricRef.current;

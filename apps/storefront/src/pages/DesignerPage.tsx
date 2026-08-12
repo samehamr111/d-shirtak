@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams, Link } from "react-router-dom";
 import type { FontDto } from "@d-shirtak/shared";
 import type { TextStyle } from "../features/designer/SideCanvas";
 import { SideCanvas, type SideCanvasHandle } from "../features/designer/SideCanvas";
@@ -63,6 +63,8 @@ function Label({ children }: { children: React.ReactNode }) {
 export function DesignerPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const presetAssetId = searchParams.get("asset");
   const { status } = useAuth();
   const { data: product, isLoading } = useProduct(slug);
   const { data: storeSettings } = useStoreSettings();
@@ -78,16 +80,37 @@ export function DesignerPage() {
   const [sizeId, setSizeId] = useState<string | null>(null);
   const [side, setSide] = useState<Side>("front");
   const [tab, setTab] = useState<Tab>("garment");
+  // Mobile-only: whether the tool drawer (bottom sheet) is open. Ignored at the lg: breakpoint,
+  // where the panel is always visible regardless.
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  function selectTab(next: Tab) {
+    if (tab === next && drawerOpen) {
+      setDrawerOpen(false);
+    } else {
+      setTab(next);
+      setDrawerOpen(true);
+    }
+  }
   const [textDraftEn, setTextDraftEn] = useState("");
   const [textDraftAr, setTextDraftAr] = useState("");
   const [textStyle, setTextStyle] = useState<TextStyle>(DEFAULT_TEXT_STYLE);
   const [selection, setSelection] = useState<{ isText: boolean; style?: TextStyle } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Mirrors the backend's per-element surcharge so the price shown here matches what actually
+  // gets charged once this is added to cart. Refs don't trigger re-renders on their own, so this
+  // is synced into state via syncElementCounts() after anything that adds/removes an object.
+  const [elementCounts, setElementCounts] = useState({ front: 0, back: 0 });
 
   const frontRef = useRef<SideCanvasHandle>(null);
   const backRef = useRef<SideCanvasHandle>(null);
   const activeCanvasRef = side === "front" ? frontRef : backRef;
+  const presetAppliedRef = useRef(false);
+
+  function syncElementCounts() {
+    setElementCounts({ front: frontRef.current?.elementCount() ?? 0, back: backRef.current?.elementCount() ?? 0 });
+  }
 
   useEffect(() => setSelection(null), [side]);
 
@@ -97,6 +120,24 @@ export function DesignerPage() {
     }
   }, [fonts]);
 
+  // Arrived here from a design-library card on the home page ("Prints people are starting
+  // with") -- that design works on any customizable garment, so rather than tying it to one
+  // product, DesignPickerPage carries its id here via ?asset= and it just gets dropped onto
+  // the canvas the moment this product's designer is ready.
+  useEffect(() => {
+    if (presetAppliedRef.current || !presetAssetId || !designAssets) return;
+    const asset = designAssets.find((a) => a.id === presetAssetId);
+    if (!asset) return;
+    presetAppliedRef.current = true;
+    frontRef.current
+      ?.addImageFromUrl(asset.imageUrl, true)
+      .then(syncElementCounts)
+      .catch((err) => {
+        console.error("addImageFromUrl (preset design) failed:", err);
+        setError("Couldn't add that design to the canvas automatically — pick it from the Designs tab instead.");
+      });
+  }, [presetAssetId, designAssets]);
+
   const activeColorId = colorId ?? product?.colors[0]?.colorId ?? null;
   const activeSizeId = sizeId ?? product?.sizes[0]?.sizeId ?? null;
   const activeColor = product?.colors.find((c) => c.colorId === activeColorId);
@@ -105,6 +146,9 @@ export function DesignerPage() {
     () => product?.variants.find((v) => v.colorId === activeColorId && v.sizeId === activeSizeId) ?? null,
     [product, activeColorId, activeSizeId],
   );
+  const totalElementCount = elementCounts.front + elementCounts.back;
+  const estimatedPrice =
+    variant && storeSettings ? variant.price + totalElementCount * storeSettings.customizationSurchargeEgp : variant?.price;
 
   const enFonts = fonts?.filter((f) => f.language === "EN") ?? [];
   const arFonts = fonts?.filter((f) => f.language === "AR") ?? [];
@@ -125,6 +169,7 @@ export function DesignerPage() {
       if (typeof reader.result === "string") {
         activeCanvasRef.current
           ?.addImageFromUrl(reader.result, false)
+          .then(syncElementCounts)
           .catch((err) => {
             console.error("addImageFromUrl (upload) failed:", err);
             setError("Couldn't add that image to the canvas. Try a different file.");
@@ -133,6 +178,7 @@ export function DesignerPage() {
     };
     reader.readAsDataURL(file);
     e.target.value = "";
+    setDrawerOpen(false);
 
     // Track the raw upload server-side so a good one can later be promoted into the curated
     // design library. Fire-and-forget: never blocks or interrupts the canvas above.
@@ -151,11 +197,23 @@ export function DesignerPage() {
     const style = { ...textStyle, fontFamily: font.fontFamily };
     setTextStyle(style);
     if (selection?.isText) {
+      // Editing text already on the canvas -- restyle it live, same as size/color.
       activeCanvasRef.current?.applyTextStyle({ fontFamily: font.fontFamily });
     } else {
       const draft = font.language === "AR" ? textDraftAr : textDraftEn;
       activeCanvasRef.current?.addText(draft.trim() || (font.language === "AR" ? AR_PREVIEW_PLACEHOLDER : "YOUR TEXT"), style);
+      syncElementCounts();
     }
+    // Close the mobile drawer so the result is immediately visible on the canvas instead of
+    // staying hidden behind the sheet. Also means picking a different font requires reopening
+    // the drawer -- by then the just-added text is still selected, so the next font click
+    // restyles it in place rather than piling up another duplicate. No-op at lg:, where the
+    // panel is always visible.
+    setDrawerOpen(false);
+  }
+
+  function isFontActive(font: FontDto): boolean {
+    return selection?.isText ? selection.style?.fontFamily === font.fontFamily : false;
   }
 
   function fontPreviewText(font: FontDto): string {
@@ -251,21 +309,25 @@ export function DesignerPage() {
           <h1 className="mt-2.5 font-display text-3xl tracking-wide sm:text-4xl lg:text-5xl">DESIGN YOUR {product.name.toUpperCase()}</h1>
         </div>
         <div className="text-right">
-          {variant && <p className="font-display text-4xl text-brand-700">EGP {variant.price.toFixed(0)}</p>}
+          {estimatedPrice !== undefined && <p className="font-display text-4xl text-brand-700">EGP {estimatedPrice.toFixed(0)}</p>}
           {storeSettings && (
             <p className="mt-1 font-mono text-[11px] text-ink/45">
-              EGP {product.basePrice.toFixed(0)} base · +EGP {storeSettings.customizationSurchargeEgp.toFixed(0)} per printed side
+              EGP {product.basePrice.toFixed(0)} base
+              {totalElementCount > 0 &&
+                ` · +EGP ${storeSettings.customizationSurchargeEgp.toFixed(0)} × ${totalElementCount} element${totalElementCount === 1 ? "" : "s"}`}
             </p>
           )}
         </div>
       </div>
 
-      <div className="mt-6 overflow-hidden rounded-[20px] border border-ink/[.08] bg-white shadow-[0_2px_10px_rgba(0,0,0,.08)]">
+      <div className="mt-6 rounded-[20px] border border-ink/[.08] bg-white shadow-[0_2px_10px_rgba(0,0,0,.08)]">
         <div className="grid lg:grid-cols-[64px_320px_1fr]">
-          {/* Canvas — first in the DOM so it appears first on mobile */}
-          <div className="relative flex flex-col items-center justify-center gap-4 bg-[radial-gradient(circle_at_50%_36%,#f6f5f0_0%,#e9e7e1_100%)] p-4 sm:gap-5 sm:p-9 lg:col-start-3 lg:row-start-1">
+          {/* Canvas — first in the DOM so it appears first on mobile. On mobile the tool panel
+              below is an expandable drawer (fixed bottom sheet) rather than stacked content, so
+              the canvas never has to compete with it for vertical space or scroll out of view. */}
+          <div className="relative flex flex-col items-center justify-center gap-4 rounded-t-[20px] bg-[radial-gradient(circle_at_50%_36%,#f6f5f0_0%,#e9e7e1_100%)] p-4 sm:gap-5 sm:p-9 lg:col-start-3 lg:row-start-1 lg:rounded-t-none lg:rounded-tr-[20px]">
             <div
-              className="relative w-full max-w-[260px] touch-none sm:max-w-md lg:max-w-[420px]"
+              className="relative w-full max-w-[280px] touch-none sm:max-w-md lg:max-w-[420px]"
               style={{ aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}` }}
             >
               <div className="absolute inset-0 overflow-hidden rounded-2xl bg-white shadow-[0_24px_42px_rgba(4,4,4,.15)]">
@@ -305,6 +367,7 @@ export function DesignerPage() {
                     onClick={() => {
                       activeCanvasRef.current?.deleteSelected();
                       setSelection(null);
+                      syncElementCounts();
                     }}
                     className="rounded-full bg-brand-500 px-3 py-2 text-[11.5px] font-semibold text-ink"
                   >
@@ -332,26 +395,50 @@ export function DesignerPage() {
                 </button>
               </div>
             </div>
-            <span className="font-mono text-[10.5px] tracking-wide text-ink/42">
-              DASHED LINE = REAL PRINTABLE AREA FOR SIZE {activeSize?.size.name ?? "—"}
-            </span>
           </div>
 
-          {/* Icon rail — sticky on mobile so it stays reachable once you've scrolled past the canvas */}
-          <div className="sticky top-16 z-10 flex flex-row justify-center gap-2 bg-ink p-3 lg:static lg:col-start-1 lg:row-start-1 lg:flex-col lg:items-center">
-            <RailButton active={tab === "garment"} label="Garment" onClick={() => setTab("garment")}>
+          {/* Icon rail — on mobile, tapping a tab opens the tool drawer below; on desktop it just
+              switches which section of the always-visible panel is shown. */}
+          <div className="flex flex-row justify-center gap-2 bg-ink p-3 lg:col-start-1 lg:row-start-1 lg:flex-col lg:items-center lg:rounded-tl-[20px]">
+            <RailButton active={tab === "garment"} label="Garment" onClick={() => selectTab("garment")}>
               <ShirtIcon />
             </RailButton>
-            <RailButton active={tab === "design"} label="Designs" onClick={() => setTab("design")}>
+            <RailButton active={tab === "design"} label="Designs" onClick={() => selectTab("design")}>
               <ImageIcon />
             </RailButton>
-            <RailButton active={tab === "text"} label="Text" onClick={() => setTab("text")}>
+            <RailButton active={tab === "text"} label="Text" onClick={() => selectTab("text")}>
               <span className="font-display text-lg leading-none">Aa</span>
             </RailButton>
           </div>
 
-          {/* Tool panel */}
-          <div className="max-h-[46vh] overflow-y-auto border-r border-ink/[.08] bg-white p-5 sm:p-6 lg:col-start-2 lg:row-start-1 lg:max-h-[660px]">
+          {/* Tool drawer — a fixed bottom sheet on mobile (opened via the rail above, closed via
+              the backdrop or the × button) so it never pushes the canvas out of view or forces a
+              scroll-down-then-back-up round trip. At lg: it's just the always-visible panel. */}
+          {drawerOpen && (
+            <div
+              className="fixed inset-0 z-40 bg-ink/40 lg:hidden"
+              onClick={() => setDrawerOpen(false)}
+              aria-hidden="true"
+            />
+          )}
+          <div
+            className={`fixed inset-x-0 bottom-0 z-50 max-h-[75vh] overflow-y-auto rounded-t-[24px] border-r-0 bg-white p-5 shadow-[0_-12px_30px_rgba(0,0,0,.18)] transition-transform duration-300 ease-out sm:p-6 lg:static lg:z-auto lg:col-start-2 lg:row-start-1 lg:max-h-[660px] lg:translate-y-0 lg:rounded-none lg:border-r lg:border-ink/[.08] lg:shadow-none ${
+              drawerOpen ? "translate-y-0" : "translate-y-full"
+            }`}
+          >
+            <div className="mb-4 flex items-center justify-between lg:hidden">
+              <p className="font-display text-lg tracking-wide">
+                {tab === "garment" ? "Garment" : tab === "design" ? "Designs" : "Text"}
+              </p>
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(false)}
+                aria-label="Close"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-paper text-ink/60 hover:text-ink"
+              >
+                ✕
+              </button>
+            </div>
             {tab === "garment" && (
               <div className="space-y-6">
                 <div>
@@ -436,11 +523,13 @@ export function DesignerPage() {
                     {designAssets?.map((asset) => (
                       <button
                         key={asset.id}
-                        onClick={() =>
+                        onClick={() => {
                           activeCanvasRef.current
                             ?.addImageFromUrl(asset.imageUrl, true)
-                            .catch(() => setError("Couldn't add that design to the canvas. Try again."))
-                        }
+                            .then(syncElementCounts)
+                            .catch(() => setError("Couldn't add that design to the canvas. Try again."));
+                          setDrawerOpen(false);
+                        }}
                         className="flex h-[100px] items-center justify-center rounded-xl border border-ink/[.08] bg-paper p-3 transition-transform hover:scale-[1.04]"
                         title={asset.name}
                       >
@@ -506,7 +595,9 @@ export function DesignerPage() {
                       <button
                         key={font.id}
                         onClick={() => useFont(font)}
-                        className="rounded-[10px] border-[1.5px] border-ink/[.12] bg-white px-3.5 py-3 text-left transition-colors hover:border-brand-500"
+                        className={`rounded-[10px] border-[1.5px] bg-white px-3.5 py-3 text-left transition-colors hover:border-brand-500 ${
+                          isFontActive(font) ? "border-brand-500 ring-2 ring-brand-500/20" : "border-ink/[.12]"
+                        }`}
                       >
                         <span className="truncate text-base" style={{ fontFamily: font.fontFamily, color: textStyle.fill }}>
                           {fontPreviewText(font)}
@@ -532,7 +623,9 @@ export function DesignerPage() {
                         key={font.id}
                         onClick={() => useFont(font)}
                         dir="rtl"
-                        className="rounded-[10px] border-[1.5px] border-ink/[.12] bg-white px-3.5 py-3 text-right transition-colors hover:border-brand-500"
+                        className={`rounded-[10px] border-[1.5px] bg-white px-3.5 py-3 text-right transition-colors hover:border-brand-500 ${
+                          isFontActive(font) ? "border-brand-500 ring-2 ring-brand-500/20" : "border-ink/[.12]"
+                        }`}
                       >
                         <span className="truncate text-base" style={{ fontFamily: font.fontFamily, color: textStyle.fill }}>
                           {fontPreviewText(font)}
@@ -547,10 +640,10 @@ export function DesignerPage() {
           </div>
         </div>
 
-        <div className="sticky bottom-0 z-10 flex items-center justify-end gap-4 border-t border-ink/[.08] bg-white px-6 py-4">
-          {error && <p className="text-sm font-medium text-red-600">{error}</p>}
-          <Button size="lg" className="animate-glow" disabled={!variant || busy} onClick={handleAddToCart}>
-            {busy ? "Saving your design…" : `Add to Cart — EGP ${(variant?.price ?? product.basePrice).toFixed(0)}`}
+        <div className="sticky bottom-0 z-10 flex flex-col items-center gap-3 rounded-b-[20px] border-t border-ink/[.08] bg-white px-6 py-4 sm:flex-row sm:justify-end sm:gap-4">
+          {error && <p className="text-center text-sm font-medium text-red-600 sm:text-left">{error}</p>}
+          <Button size="lg" className="w-full animate-glow sm:w-auto" disabled={!variant || busy} onClick={handleAddToCart}>
+            {busy ? "Saving your design…" : `Add to Cart — EGP ${(estimatedPrice ?? product.basePrice).toFixed(0)}`}
           </Button>
         </div>
       </div>

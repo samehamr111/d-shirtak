@@ -1,6 +1,6 @@
 import type { AddCartItemInput, CartDto, CartItemDto } from "@d-shirtak/shared";
 import { ForbiddenError, NotFoundError, ValidationError } from "../../domain/errors.js";
-import { calcSubtotal, customizationSurcharge, effectiveVariantPrice } from "../../domain/services/pricing.service.js";
+import { calcSubtotal, countDesignElements, customizationSurcharge, effectiveVariantPrice } from "../../domain/services/pricing.service.js";
 import type { ICartRepository } from "../../domain/ports/repositories/cart.repository.js";
 import type { IProductRepository, IProductVariantRepository } from "../../domain/ports/repositories/product.repository.js";
 import type { IDesignRepository } from "../../domain/ports/repositories/design.repository.js";
@@ -107,7 +107,11 @@ export class CartService {
       imageUrl: color?.frontImageUrl ?? "",
       unitPrice:
         effectiveVariantPrice(variant, product) +
-        customizationSurcharge(!!frontDesign, !!backDesign, surchargeEgp),
+        customizationSurcharge(
+          frontDesign ? countDesignElements(frontDesign.canvasJson) : 0,
+          backDesign ? countDesignElements(backDesign.canvasJson) : 0,
+          surchargeEgp,
+        ),
       quantity: item.quantity,
       stockQuantity: variant.stockQuantity,
       frontDesignPreviewUrl: frontDesign?.previewImageUrl ?? null,

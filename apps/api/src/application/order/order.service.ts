@@ -1,6 +1,6 @@
 import type { OrderDto, PlaceOrderInput as PlaceOrderDtoInput } from "@d-shirtak/shared";
 import { ForbiddenError, NotFoundError, ValidationError } from "../../domain/errors.js";
-import { calcShippingFee, customizationSurcharge, effectiveVariantPrice } from "../../domain/services/pricing.service.js";
+import { calcShippingFee, countDesignElements, customizationSurcharge, effectiveVariantPrice } from "../../domain/services/pricing.service.js";
 import type { ICartRepository } from "../../domain/ports/repositories/cart.repository.js";
 import type { IProductRepository, IProductVariantRepository } from "../../domain/ports/repositories/product.repository.js";
 import type { IAddressRepository } from "../../domain/ports/repositories/address.repository.js";
@@ -37,9 +37,17 @@ export class OrderService {
       const product = await this.products.findById(variant.productId);
       if (!product) throw new NotFoundError("Product", variant.productId);
 
+      const [frontDesign, backDesign] = await Promise.all([
+        row.frontDesignId ? this.designs.findById(row.frontDesignId) : Promise.resolve(null),
+        row.backDesignId ? this.designs.findById(row.backDesignId) : Promise.resolve(null),
+      ]);
       const unitPrice =
         effectiveVariantPrice(variant, product) +
-        customizationSurcharge(!!row.frontDesignId, !!row.backDesignId, surchargeEgp);
+        customizationSurcharge(
+          frontDesign ? countDesignElements(frontDesign.canvasJson) : 0,
+          backDesign ? countDesignElements(backDesign.canvasJson) : 0,
+          surchargeEgp,
+        );
       subtotalCents += Math.round(unitPrice * 100) * row.quantity;
       items.push({
         productVariantId: variant.id,

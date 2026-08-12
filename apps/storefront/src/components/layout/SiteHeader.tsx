@@ -57,9 +57,20 @@ export function SiteHeader() {
         <div className="ml-auto flex items-center gap-4">
           <Link
             to="/cart"
-            className="hidden text-[13px] font-medium text-white/72 hover:text-white sm:block"
+            aria-label={`Cart, ${itemCount} item${itemCount === 1 ? "" : "s"}`}
+            className="relative flex items-center gap-1.5 text-white/85 hover:text-white"
           >
-            Cart ({itemCount})
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path d="M6 6h15l-1.5 9h-12L6 6Zm0 0-1-3H2" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="9.5" cy="19.5" r="1.5" fill="currentColor" stroke="none" />
+              <circle cx="17.5" cy="19.5" r="1.5" fill="currentColor" stroke="none" />
+            </svg>
+            {itemCount > 0 && (
+              <span className="absolute -right-2 -top-2 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand-500 px-1 text-[10px] font-bold leading-none text-ink">
+                {itemCount}
+              </span>
+            )}
+            <span className="hidden text-[13px] font-medium sm:block">Cart</span>
           </Link>
           <Link
             to={user ? "/account/orders" : "/login"}
