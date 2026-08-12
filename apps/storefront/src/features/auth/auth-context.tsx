@@ -1,5 +1,12 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import type { AuthResponseDto, AuthUserDto, LoginInput, SignupInput } from "@d-shirtak/shared";
+import type {
+  AuthResponseDto,
+  AuthUserDto,
+  LoginInput,
+  SignupInput,
+  SignupStartedDto,
+  VerifySignupInput,
+} from "@d-shirtak/shared";
 import { api, setAccessToken } from "../../lib/api-client";
 import { flushLocalCartToServer } from "../cart/guest-cart-sync";
 
@@ -9,7 +16,11 @@ interface AuthContextValue {
   user: AuthUserDto | null;
   status: AuthStatus;
   login: (input: LoginInput) => Promise<void>;
-  signup: (input: SignupInput) => Promise<void>;
+  /** Step 1 of signup -- sends an OTP to the given email. No account exists yet. */
+  startSignup: (input: SignupInput) => Promise<SignupStartedDto>;
+  /** Step 2 of signup -- confirms the OTP and actually creates + logs into the account. */
+  verifySignup: (input: VerifySignupInput) => Promise<void>;
+  resendSignupOtp: (email: string) => Promise<SignupStartedDto>;
   logout: () => Promise<void>;
 }
 
@@ -50,13 +61,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // (e.g. a variant went out of stock) shouldn't block the login that already succeeded.
         await flushLocalCartToServer().catch(() => undefined);
       },
-      signup: async (input) => {
-        const res = await api.post<AuthResponseDto>("/auth/signup", input);
+      startSignup: (input) => api.post<SignupStartedDto>("/auth/signup", input),
+      verifySignup: async (input) => {
+        const res = await api.post<AuthResponseDto>("/auth/signup/verify", input);
         setAccessToken(res.accessToken);
         setUser(res.user);
         setStatus("authenticated");
         await flushLocalCartToServer().catch(() => undefined);
       },
+      resendSignupOtp: (email) => api.post<SignupStartedDto>("/auth/signup/resend", { email }),
       logout: async () => {
         await api.post("/auth/logout").catch(() => undefined);
         setAccessToken(null);

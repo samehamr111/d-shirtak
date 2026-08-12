@@ -25,11 +25,15 @@ import { PrismaCartRepository } from "./prisma/repositories/cart.repository.pris
 import { PrismaOrderRepository } from "./prisma/repositories/order.repository.prisma.js";
 import { PrismaUserUploadRepository } from "./prisma/repositories/user-upload.repository.prisma.js";
 import { PrismaStoreSettingsRepository } from "./prisma/repositories/store-settings.repository.prisma.js";
+import { PrismaPendingSignupRepository } from "./prisma/repositories/pending-signup.repository.prisma.js";
 import { LocalDiskFileStorage } from "./storage/local-disk-file-storage.js";
 import { R2FileStorage } from "./storage/r2-file-storage.js";
 import { BcryptPasswordHasher } from "./auth/bcrypt-password-hasher.js";
 import { JwtTokenService } from "./auth/jwt-token-service.js";
+import { ConsoleEmailSender } from "./email/console-email-sender.js";
+import { ResendEmailSender } from "./email/resend-email-sender.js";
 import type { IFileStorage } from "../domain/ports/file-storage.port.js";
+import type { IEmailSender } from "../domain/ports/email.port.js";
 
 export const repositories = {
   user: new PrismaUserRepository(prisma),
@@ -50,6 +54,7 @@ export const repositories = {
   order: new PrismaOrderRepository(prisma),
   userUpload: new PrismaUserUploadRepository(prisma),
   storeSettings: new PrismaStoreSettingsRepository(prisma),
+  pendingSignup: new PrismaPendingSignupRepository(prisma),
 };
 
 // R2 kicks in the moment all four credentials are set; otherwise local disk (dev default).
@@ -72,8 +77,19 @@ function createFileStorage(): IFileStorage {
   return new LocalDiskFileStorage(path.resolve(env.UPLOADS_DIR), env.PUBLIC_UPLOADS_BASE_URL);
 }
 
+// Resend kicks in once both RESEND_API_KEY and EMAIL_FROM_ADDRESS are set; otherwise OTP codes
+// are logged to the server console (dev fallback) so signup still works end-to-end locally
+// without needing a real provider configured.
+function createEmailSender(): IEmailSender {
+  if (env.RESEND_API_KEY && env.EMAIL_FROM_ADDRESS) {
+    return new ResendEmailSender(env.RESEND_API_KEY, env.EMAIL_FROM_ADDRESS);
+  }
+  return new ConsoleEmailSender();
+}
+
 export const services = {
   fileStorage: createFileStorage(),
   passwordHasher: new BcryptPasswordHasher(),
   tokenService: new JwtTokenService(env.JWT_ACCESS_SECRET, env.JWT_ACCESS_TTL, env.JWT_REFRESH_TTL_DAYS),
+  emailSender: createEmailSender(),
 };

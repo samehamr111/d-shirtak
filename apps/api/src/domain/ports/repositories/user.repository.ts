@@ -3,6 +3,7 @@ import type { User } from "../../entities/user.entity.js";
 export interface CreateUserInput {
   username: string;
   email: string;
+  phone: string;
   passwordHash: string;
   role?: "CUSTOMER" | "ADMIN";
 }

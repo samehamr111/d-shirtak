@@ -20,6 +20,11 @@ const envSchema = z.object({
   R2_SECRET_ACCESS_KEY: z.string().min(1).optional(),
   R2_BUCKET_NAME: z.string().min(1).optional(),
   R2_PUBLIC_BASE_URL: z.string().min(1).optional(),
+
+  // Signup OTP email (Resend). Both optional -- when unset, OTP codes are logged to the server
+  // console instead (dev fallback; see infrastructure/email/console-email-sender.ts).
+  RESEND_API_KEY: z.string().min(1).optional(),
+  EMAIL_FROM_ADDRESS: z.string().min(1).optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

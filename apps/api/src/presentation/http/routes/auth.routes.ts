@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { loginSchema, signupSchema } from "@d-shirtak/shared";
+import { loginSchema, resendSignupOtpSchema, signupSchema, verifySignupSchema } from "@d-shirtak/shared";
 import { appServices } from "../../../application/container.js";
 import { asyncHandler } from "../async-handler.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
@@ -12,9 +12,27 @@ authRouter.post(
   "/signup",
   asyncHandler(async (req, res) => {
     const input = signupSchema.parse(req.body);
-    const result = await appServices.auth.signup(input);
+    const result = await appServices.auth.startSignup(input);
+    res.status(201).json(result);
+  }),
+);
+
+authRouter.post(
+  "/signup/resend",
+  asyncHandler(async (req, res) => {
+    const input = resendSignupOtpSchema.parse(req.body);
+    const result = await appServices.auth.resendSignupOtp(input);
+    res.json(result);
+  }),
+);
+
+authRouter.post(
+  "/signup/verify",
+  asyncHandler(async (req, res) => {
+    const input = verifySignupSchema.parse(req.body);
+    const result = await appServices.auth.verifySignup(input);
     setRefreshCookie(res, result.refreshToken, result.refreshTokenExpiresAt);
-    res.status(201).json(result.response);
+    res.json(result.response);
   }),
 );
 

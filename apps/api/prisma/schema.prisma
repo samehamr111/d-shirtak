@@ -12,7 +12,7 @@ datasource db {
 //   Role:          "CUSTOMER" | "ADMIN"
 //   FontLanguage:  "EN" | "AR"
 //   DesignSide:    "FRONT" | "BACK"
-//   OrderStatus:   "PENDING" | "CONFIRMED" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED"
+//   OrderStatus:   "PENDING" | "CONTACTED" | "PRINTING" | "PACKAGING" | "DELIVERY" | "CANCELLED"
 //   PaymentMethod: "COD"
 
 // ---------------------------------------------------------------------------
@@ -23,6 +23,10 @@ model User {
   id           String   @id @default(cuid())
   username     String
   email        String   @unique
+  /// Egyptian mobile, e.g. "+201128507553" -- mandatory for every new signup (see PendingSignup)
+  /// so support can actually reach a customer, but nullable here since existing users predate
+  /// this field and were never asked for one.
+  phone        String?
   passwordHash String
   role         String   @default("CUSTOMER")
   createdAt    DateTime @default(now())
@@ -38,20 +42,40 @@ model User {
   @@map("users")
 }
 
+/// A signup that hasn't been email-verified yet -- no User row exists until the OTP is confirmed,
+/// so an abandoned/unverified signup never permanently squats on an email address. One row per
+/// email (unique): starting signup again with the same email replaces it; resending a code just
+/// refreshes otpCodeHash/expiresAt/lastSentAt and resets attempts, keeping the same username/
+/// passwordHash already captured.
+model PendingSignup {
+  id           String   @id @default(cuid())
+  username     String
+  email        String   @unique
+  phone        String
+  passwordHash String
+  otpCodeHash  String
+  attempts     Int      @default(0)
+  expiresAt    DateTime
+  lastSentAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  @@map("pending_signups")
+}
+
 model Address {
-  id         String   @id @default(cuid())
-  userId     String
-  label      String   @default("Home")
-  fullName   String
-  phone      String
-  line1      String
-  line2      String?
-  city       String
+  id          String   @id @default(cuid())
+  userId      String
+  label       String   @default("Home")
+  fullName    String
+  phone       String
+  line1       String
+  line2       String?
+  city        String
   governorate String
-  postalCode String?
-  country    String   @default("Egypt")
-  isDefault  Boolean  @default(false)
-  createdAt  DateTime @default(now())
+  postalCode  String?
+  country     String   @default("Egypt")
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
@@ -119,26 +143,26 @@ model StoreSettings {
 }
 
 model Product {
-  id             String   @id @default(cuid())
-  categoryId     String
-  code           String   @unique
+  id          String   @id @default(cuid())
+  categoryId  String
+  code        String   @unique
   /// "TEE" | "HOODIE" (see GarmentType in @d-shirtak/shared) -- which torso-frame reference the
   /// designer canvas + admin mockup tools use for this product.
-  garmentType    String   @default("TEE")
-  name           String
-  slug           String   @unique
-  description    String   @db.NVarChar(4000)
-  basePrice      Decimal  @db.Decimal(10, 2)
+  garmentType String   @default("TEE")
+  name        String
+  slug        String   @unique
+  description String   @db.NVarChar(4000)
+  basePrice   Decimal  @db.Decimal(10, 2)
   /// What this product cost to acquire/produce, per unit. Admin-only -- never exposed on the
   /// public storefront API. Nullable: unknown for products created before this field existed.
-  costPrice      Decimal? @db.Decimal(10, 2)
+  costPrice   Decimal? @db.Decimal(10, 2)
   /// "CUSTOMIZABLE" | "READY_PRINTED" (see ProductType in @d-shirtak/shared).
-  productType    String   @default("CUSTOMIZABLE")
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  productType String   @default("CUSTOMIZABLE")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  category Category @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  category Category         @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   colors   ProductColor[]
   sizes    ProductSize[]
   variants ProductVariant[]
@@ -192,15 +216,15 @@ model ProductSize {
 
 /// The actual purchasable SKU: one (product, color, size) combination and its stock.
 model ProductVariant {
-  id             String   @id @default(cuid())
-  productId      String
-  colorId        String
-  sizeId         String
-  sku            String   @unique
-  stockQuantity  Int      @default(0)
-  priceOverride  Decimal? @db.Decimal(10, 2)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id            String   @id @default(cuid())
+  productId     String
+  colorId       String
+  sizeId        String
+  sku           String   @unique
+  stockQuantity Int      @default(0)
+  priceOverride Decimal? @db.Decimal(10, 2)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   color   Color   @relation(fields: [colorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -243,10 +267,25 @@ model DesignAsset {
   imageUrl         String
   designCategoryId String
 
-  designCategory DesignCategory @relation(fields: [designCategoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  designCategory DesignCategory          @relation(fields: [designCategoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   promotedFrom   UserUpload?
+  /// Photos of this exact design printed on a real garment -- optional, admin-uploaded (see the
+  /// "Generate prompt" helper), shown alongside the flat print on the storefront. A design can
+  /// have any number of these (different garments/colors/angles).
+  modelShots     DesignAssetModelShot[]
 
   @@map("design_assets")
+}
+
+model DesignAssetModelShot {
+  id            String   @id @default(cuid())
+  designAssetId String
+  imageUrl      String
+  createdAt     DateTime @default(now())
+
+  designAsset DesignAsset @relation(fields: [designAssetId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("design_asset_model_shots")
 }
 
 /// A raw image a customer uploaded in the designer (or an admin uploaded for the model-shot
@@ -274,7 +313,7 @@ model UserUpload {
 /// Never mutated after creation -- editing produces a new row -- so CartItem/OrderItem
 /// can reference a designId forever without it changing under them.
 model Design {
-  id               String     @id @default(cuid())
+  id               String   @id @default(cuid())
   ownerUserId      String
   productVariantId String
   side             String
@@ -306,10 +345,10 @@ model CartItem {
   backDesignId     String?
   createdAt        DateTime @default(now())
 
-  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  variant ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  frontDesign Design? @relation("CartItemFrontDesign", fields: [frontDesignId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  backDesign  Design? @relation("CartItemBackDesign", fields: [backDesignId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  variant     ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  frontDesign Design?        @relation("CartItemFrontDesign", fields: [frontDesignId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  backDesign  Design?        @relation("CartItemBackDesign", fields: [backDesignId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("cart_items")
 }
@@ -319,8 +358,8 @@ model CartItem {
 // ---------------------------------------------------------------------------
 
 model Order {
-  id            String        @id @default(cuid())
-  orderNumber   String        @unique
+  id            String @id @default(cuid())
+  orderNumber   String @unique
   userId        String
   status        String @default("PENDING")
   paymentMethod String @default("COD")
@@ -348,7 +387,7 @@ model Order {
 }
 
 model OrderItem {
-  id               String  @id @default(cuid())
+  id               String @id @default(cuid())
   orderId          String
   productVariantId String
 
@@ -361,10 +400,10 @@ model OrderItem {
   frontDesignId String?
   backDesignId  String?
 
-  order   Order          @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  variant ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  frontDesign Design? @relation("OrderItemFrontDesign", fields: [frontDesignId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  backDesign  Design? @relation("OrderItemBackDesign", fields: [backDesignId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  order       Order          @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  variant     ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  frontDesign Design?        @relation("OrderItemFrontDesign", fields: [frontDesignId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  backDesign  Design?        @relation("OrderItemBackDesign", fields: [backDesignId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("order_items")
 }

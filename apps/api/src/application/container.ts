@@ -11,7 +11,14 @@ import { AdminOrderService } from "./admin/admin-order.service.js";
 import { UserUploadService } from "./uploads/user-upload.service.js";
 
 export const appServices = {
-  auth: new AuthService(repositories.user, repositories.refreshToken, services.passwordHasher, services.tokenService),
+  auth: new AuthService(
+    repositories.user,
+    repositories.refreshToken,
+    services.passwordHasher,
+    services.tokenService,
+    repositories.pendingSignup,
+    services.emailSender,
+  ),
   address: new AddressService(repositories.address),
   catalog: new CatalogService(
     repositories.category,
@@ -59,6 +66,13 @@ export const appServices = {
     repositories.user,
     services.fileStorage,
   ),
-  adminOrder: new AdminOrderService(repositories.order, repositories.design, repositories.productVariant, repositories.product),
+  adminOrder: new AdminOrderService(
+    repositories.order,
+    repositories.design,
+    repositories.productVariant,
+    repositories.product,
+    repositories.designAsset,
+    services.fileStorage,
+  ),
   userUpload: new UserUploadService(repositories.userUpload, repositories.user, services.fileStorage),
 };

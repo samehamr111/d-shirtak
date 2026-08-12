@@ -1,9 +1,10 @@
 /**
  * DESTRUCTIVE one-off script -- wipes every product, order, cart, design, upload, color, size,
- * category, design-library asset, and font from the database (keeping ADMIN-role users and the
- * StoreSettings row untouched), empties the entire R2 bucket, then reseeds a minimal baseline:
- * 3 colors, sizes S-XL, 2 categories, and a few real Arabic/English fonts sourced from the same
- * @fontsource packages already used for the site's own UI (open-licensed, not invented content).
+ * category, design-library asset, pending signup, and font from the database (keeping ADMIN-role
+ * users and the StoreSettings row untouched), empties the entire R2 bucket, then reseeds a
+ * minimal baseline: 3 colors, sizes S-L, 2 categories, and a few real Arabic/English fonts
+ * sourced from the same @fontsource packages already used for the site's own UI (open-licensed,
+ * not invented content).
  *
  * This is meant to be run once against PRODUCTION to reset it for a clean test pass. It reads
  * R2 credentials and the public base URL directly from the environment (not the app's normal
@@ -79,6 +80,11 @@ async function uploadFontFile(localFilePath: string): Promise<string> {
 
 async function clearDatabase(): Promise<void> {
   console.log("Clearing database (keeping ADMIN-role users and store settings)...");
+  // Safe to run before or after today's schema migrations have actually been deployed --
+  // pending_signups doesn't exist yet on a target still running the pre-OTP-signup schema.
+  await prisma.pendingSignup.deleteMany().catch((err) => {
+    if (err?.code !== "P2021") throw err;
+  });
   await prisma.orderItem.deleteMany();
   await prisma.order.deleteMany();
   await prisma.cartItem.deleteMany();
@@ -112,11 +118,11 @@ async function seedBaseline(): Promise<void> {
   });
   console.log("  Colors: White, Navy, Black");
 
-  const sizeNames = ["Small", "Medium", "Large", "X-Large"];
+  const sizeNames = ["Small", "Medium", "Large"];
   for (let i = 0; i < sizeNames.length; i++) {
     await prisma.size.create({ data: { name: sizeNames[i]!, sortOrder: i } });
   }
-  console.log("  Sizes: Small, Medium, Large, X-Large");
+  console.log("  Sizes: Small, Medium, Large");
 
   await prisma.category.createMany({
     data: [
