@@ -18,7 +18,7 @@ export function SignupPage() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   // Local Egyptian mobile digits only, no country code and no leading 0 -- e.g. typing either
-  // "01128507553" or "1128507553" both normalize to "1128507553", combined with the fixed "+20"
+  // "01012345678" or "1012345678" both normalize to "1012345678", combined with the fixed "+20"
   // prefix the customer never has to type themselves.
   const [phoneLocal, setPhoneLocal] = useState("");
   const [password, setPassword] = useState("");
@@ -139,7 +139,7 @@ export function SignupPage() {
                       type="tel"
                       inputMode="numeric"
                       required
-                      placeholder="1128507553"
+                      placeholder="1012345678"
                       value={phoneLocal}
                       onChange={(e) => setPhoneLocal(e.target.value.replace(/\D/g, "").replace(/^0+/, "").slice(0, 10))}
                     />

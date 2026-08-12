@@ -2,8 +2,8 @@ import { z } from "zod";
 import type { Role } from "../enums.js";
 
 // Egyptian mobile numbers: local format is 0 + a 2-digit carrier prefix (10/11/12/15) + 8 more
-// digits (11 digits total, e.g. "01128507553"). International/E.164 format drops the leading 0
-// and adds the country code: "+20" + prefix + 8 digits, e.g. "+201128507553".
+// digits (11 digits total, e.g. "01012345678"). International/E.164 format drops the leading 0
+// and adds the country code: "+20" + prefix + 8 digits, e.g. "+201012345678".
 const EGYPT_PHONE_PATTERN = /^\+20(10|11|12|15)\d{8}$/;
 
 /** Rejects numbers that pass the format check but are obviously not real -- all the trailing
@@ -22,7 +22,7 @@ function looksFake(phone: string): boolean {
 
 export const egyptianPhoneSchema = z
   .string()
-  .regex(EGYPT_PHONE_PATTERN, "Enter a valid Egyptian mobile number, e.g. +201128507553")
+  .regex(EGYPT_PHONE_PATTERN, "Enter a valid Egyptian mobile number, e.g. +201012345678")
   .refine((phone) => !looksFake(phone), "That doesn't look like a real phone number");
 
 export const signupSchema = z.object({

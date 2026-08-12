@@ -46,7 +46,18 @@ function readAll(): LocalCartItem[] {
 }
 
 function writeAll(items: LocalCartItem[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  } catch (err) {
+    // Belt-and-suspenders: externalizeDesign already keeps individual designs small by
+    // uploading embedded base64 image data instead of caching it locally, but a guest cart
+    // with enough items can still add up. localStorage's quota is small (~5-10MB) and shared
+    // across the whole site, so this is a real, reachable failure mode, not a hypothetical one.
+    if (err instanceof DOMException && (err.name === "QuotaExceededError" || err.code === 22)) {
+      throw new Error("Your cart is too full to save on this device — remove an item, or sign in so it saves to your account instead.");
+    }
+    throw err;
+  }
   emit();
 }
 

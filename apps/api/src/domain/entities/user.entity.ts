@@ -4,7 +4,7 @@ export interface User {
   id: string;
   username: string;
   email: string;
-  /// Egyptian mobile, e.g. "+201128507553". Nullable: mandatory for new signups, but null for
+  /// Egyptian mobile, e.g. "+201012345678". Nullable: mandatory for new signups, but null for
   /// accounts created before this field existed.
   phone: string | null;
   passwordHash: string;

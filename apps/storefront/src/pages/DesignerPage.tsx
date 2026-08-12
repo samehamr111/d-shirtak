@@ -8,6 +8,7 @@ import { useFontLoader } from "../features/designer/use-load-web-fonts";
 import { useDesignAssets, useDesignCategories, useFonts, useProduct, useStoreSettings } from "../features/catalog/catalog-api";
 import { useSaveDesign } from "../features/designer/design-api";
 import { useAddToCart } from "../features/cart/cart-api";
+import { externalizeDesign } from "../features/cart/externalize-guest-design";
 import { useAuth } from "../features/auth/auth-context";
 import { Container } from "../components/ui/Container";
 import { Button } from "../components/ui/Button";
@@ -258,15 +259,20 @@ export function DesignerPage() {
           backDesignId = design.id;
         }
       } else {
-        // Guest: keep the raw canvas data around locally. It becomes a real Design the moment
-        // they log in -- see flushLocalCartToServer -- login only happens at checkout, not now.
+        // Guest: keep the design around locally (localStorage) -- it becomes a real Design the
+        // moment they log in, see flushLocalCartToServer. Any embedded base64 image data (an
+        // uploaded photo, or the full-canvas preview export) gets uploaded and swapped for a URL
+        // first -- localStorage's quota is only a few MB, and raw base64 image data eats through
+        // that almost immediately.
         if (hasFront) {
-          frontJson = frontRef.current!.exportJson();
-          frontPreview = frontRef.current!.exportPng();
+          const externalized = await externalizeDesign(frontRef.current!.exportJson(), frontRef.current!.exportPng());
+          frontJson = externalized.json;
+          frontPreview = externalized.previewUrl;
         }
         if (hasBack) {
-          backJson = backRef.current!.exportJson();
-          backPreview = backRef.current!.exportPng();
+          const externalized = await externalizeDesign(backRef.current!.exportJson(), backRef.current!.exportPng());
+          backJson = externalized.json;
+          backPreview = externalized.previewUrl;
         }
       }
 

@@ -23,7 +23,7 @@ model User {
   id           String   @id @default(cuid())
   username     String
   email        String   @unique
-  /// Egyptian mobile, e.g. "+201128507553" -- mandatory for every new signup (see PendingSignup)
+  /// Egyptian mobile, e.g. "+201012345678" -- mandatory for every new signup (see PendingSignup)
   /// so support can actually reach a customer, but nullable here since existing users predate
   /// this field and were never asked for one.
   phone        String?
