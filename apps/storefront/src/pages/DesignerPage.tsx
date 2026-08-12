@@ -185,7 +185,7 @@ export function DesignerPage() {
     // design library. Fire-and-forget: never blocks or interrupts the canvas above.
     const form = new FormData();
     form.set("file", file, file.name);
-    api.postForm("/user-uploads", form).catch(() => {});
+    api.postForm("/user-uploads", form).catch((err) => console.error("Upload tracking failed:", err));
   }
 
   function applyStylePatch(patch: Partial<TextStyle>) {

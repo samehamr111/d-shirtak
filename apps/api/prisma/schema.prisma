@@ -301,6 +301,10 @@ model UserUpload {
   userId          String?
   imageUrl        String
   originalName    String?
+  /// Enforced in the DB as a FILTERED unique index (WHERE promotedAssetId IS NOT NULL), not a
+  /// plain UNIQUE CONSTRAINT -- SQL Server's plain unique constraints only allow one NULL total
+  /// across the table, and this column is null for nearly every row. If a future `prisma migrate
+  /// dev` proposes replacing the filtered index with a plain unique constraint, reject that diff.
   promotedAssetId String?  @unique
   createdAt       DateTime @default(now())
 
