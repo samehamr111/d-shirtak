@@ -9,18 +9,18 @@ import { AccountNav } from "../components/AccountNav";
 import { ShirtMark } from "../components/ui/ShirtMark";
 
 const TIMELINE_STEPS: { status: OrderStatus; label: string }[] = [
-  { status: "CONFIRMED", label: "Ordered" },
-  { status: "PROCESSING", label: "Confirmed" },
-  { status: "SHIPPED", label: "Shipped" },
-  { status: "DELIVERED", label: "Delivered" },
+  { status: "CONTACTED", label: "Confirmed" },
+  { status: "PRINTING", label: "Printing" },
+  { status: "PACKAGING", label: "Packaging" },
+  { status: "DELIVERY", label: "Delivered" },
 ];
 
 const STATUS_RANK: Record<OrderStatus, number> = {
   PENDING: 0,
-  CONFIRMED: 1,
-  PROCESSING: 2,
-  SHIPPED: 3,
-  DELIVERED: 4,
+  CONTACTED: 1,
+  PRINTING: 2,
+  PACKAGING: 3,
+  DELIVERY: 4,
   CANCELLED: -1,
 };
 

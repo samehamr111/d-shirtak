@@ -2,7 +2,7 @@ import type { Prisma, PrismaClient } from "@prisma/client";
 import { InsufficientStockError, NotFoundError } from "../../../domain/errors.js";
 import type { Order, OrderStatus } from "../../../domain/entities/order.entity.js";
 import { generateOrderNumber } from "../../../domain/services/order-number.service.js";
-import { customizationSurcharge } from "../../../domain/services/pricing.service.js";
+import { countDesignElements, customizationSurcharge } from "../../../domain/services/pricing.service.js";
 import type {
   IOrderRepository,
   OrderWithCustomer,
@@ -101,9 +101,17 @@ export class PrismaOrderRepository implements IOrderRepository {
           throw new InsufficientStockError(variant.sku, item.quantity, variant.stockQuantity);
         }
 
+        const [frontDesign, backDesign] = await Promise.all([
+          item.frontDesignId ? tx.design.findUnique({ where: { id: item.frontDesignId } }) : Promise.resolve(null),
+          item.backDesignId ? tx.design.findUnique({ where: { id: item.backDesignId } }) : Promise.resolve(null),
+        ]);
         const unitPrice =
           (variant.priceOverride !== null ? Number(variant.priceOverride) : Number(variant.product.basePrice)) +
-          customizationSurcharge(!!item.frontDesignId, !!item.backDesignId, input.customizationSurchargeEgp);
+          customizationSurcharge(
+            frontDesign ? countDesignElements(frontDesign.canvasJson) : 0,
+            backDesign ? countDesignElements(backDesign.canvasJson) : 0,
+            input.customizationSurchargeEgp,
+          );
         subtotalCents += Math.round(unitPrice * 100) * item.quantity;
 
         itemsData.push({
@@ -176,5 +184,9 @@ export class PrismaOrderRepository implements IOrderRepository {
   async updateStatus(id: string, status: OrderStatus): Promise<Order> {
     const row = await this.db.order.update({ where: { id }, data: { status }, include: withItems });
     return toOrder(row);
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.db.order.delete({ where: { id } });
   }
 }

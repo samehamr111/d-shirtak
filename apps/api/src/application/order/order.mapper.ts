@@ -2,8 +2,17 @@ import type { OrderDto, OrderItemDto, OrderSummaryDto } from "@d-shirtak/shared"
 import type { IDesignRepository } from "../../domain/ports/repositories/design.repository.js";
 import type { Order } from "../../domain/entities/order.entity.js";
 import type { OrderWithCustomer } from "../../domain/ports/repositories/order.repository.js";
+import { parseDesignElements } from "./design-elements.js";
 
-export async function toOrderDto(order: Order, designs: IDesignRepository): Promise<OrderDto> {
+export interface ToOrderDtoOptions {
+  /** Only passed by the admin order-detail endpoint -- when present, each item's canvasJson is
+   *  broken down into downloadable text/image elements (see design-elements.ts). Customers never
+   *  get canvasJson exposed to them at all, so this stays undefined on the storefront path. */
+  designAssetsByUrl?: ReadonlyMap<string, { id: string; name: string }>;
+}
+
+export async function toOrderDto(order: Order, designs: IDesignRepository, options?: ToOrderDtoOptions): Promise<OrderDto> {
+  const designAssetsByUrl = options?.designAssetsByUrl;
   const items: OrderItemDto[] = await Promise.all(
     order.items.map(async (item) => {
       const [frontDesign, backDesign] = await Promise.all([
@@ -22,6 +31,10 @@ export async function toOrderDto(order: Order, designs: IDesignRepository): Prom
         backDesignPreviewUrl: backDesign?.previewImageUrl ?? null,
         garmentType: item.garmentType,
         colorHex: item.colorHex,
+        frontDesignElements:
+          designAssetsByUrl && frontDesign ? parseDesignElements(frontDesign.canvasJson, designAssetsByUrl) : undefined,
+        backDesignElements:
+          designAssetsByUrl && backDesign ? parseDesignElements(backDesign.canvasJson, designAssetsByUrl) : undefined,
       };
     }),
   );

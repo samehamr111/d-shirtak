@@ -81,6 +81,16 @@ export class R2FileStorage implements IFileStorage {
     await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: relativePath }));
   }
 
+  async deleteByUrl(url: string): Promise<void> {
+    const prefix = `${this.publicBaseUrl}/`;
+    if (!url.startsWith(prefix)) return;
+    try {
+      await this.delete(url.slice(prefix.length));
+    } catch {
+      // best-effort cleanup -- see IFileStorage.deleteByUrl
+    }
+  }
+
   /** Fetches an object server-to-server so it can be proxied through the API's own domain
    *  instead of served directly from the R2 public URL -- see routes/uploads-proxy.routes.ts.
    *  Server-to-server requests aren't subject to browser CORS at all, which sidesteps R2's

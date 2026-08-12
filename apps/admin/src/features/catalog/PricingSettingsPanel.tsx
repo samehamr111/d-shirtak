@@ -31,15 +31,15 @@ export function PricingSettingsPanel() {
     <section className="rounded-lg border border-ink/10 bg-white p-4">
       <h2 className="mb-1 text-base font-semibold">Pricing</h2>
       <p className="mb-4 text-sm text-ink/60">
-        Customers pay this on top of the product price for every printed side (front and back are charged
-        separately) whenever they add a design.
+        Customers pay this on top of the product price for every element they add in the designer -- each text
+        block, each uploaded image, and each design library pick, across both sides.
       </p>
 
       {isLoading ? (
         <p className="text-sm text-ink/60">Loading…</p>
       ) : (
         <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3">
-          <Field label="Customization surcharge (EGP per printed side)">
+          <Field label="Customization surcharge (EGP per element)">
             <Input
               type="number"
               min="0"

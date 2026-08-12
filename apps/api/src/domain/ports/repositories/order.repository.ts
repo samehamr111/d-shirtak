@@ -28,4 +28,7 @@ export interface IOrderRepository {
   listAdmin(status?: OrderStatus): Promise<OrderWithCustomer[]>;
   findByIdAdmin(id: string): Promise<OrderWithCustomer | null>;
   updateStatus(id: string, status: OrderStatus): Promise<Order>;
+  /** Deletes the order and its items (OrderItem cascades from Order in the schema). Used only
+   *  for the cancel-and-purge flow -- see AdminOrderService.updateStatus. */
+  delete(id: string): Promise<void>;
 }

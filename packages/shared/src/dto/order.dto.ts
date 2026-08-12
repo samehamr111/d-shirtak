@@ -13,6 +13,13 @@ export const updateOrderStatusSchema = z.object({
 });
 export type UpdateOrderStatusInput = z.infer<typeof updateOrderStatusSchema>;
 
+/** One piece of a saved design, broken out of its raw canvasJson for the admin order view --
+ *  either a text block (with the font used) or an image (either a customer upload, or a pick
+ *  from the design library, in which case libraryAssetId/Name point back to it). */
+export type DesignElementDto =
+  | { kind: "text"; content: string; fontFamily: string | null }
+  | { kind: "image"; url: string; libraryAssetId: string | null; libraryAssetName: string | null };
+
 export interface OrderItemDto {
   id: string;
   productName: string;
@@ -27,6 +34,10 @@ export interface OrderItemDto {
    *  prompt for this exact item without a separate lookup. */
   garmentType?: GarmentType;
   colorHex?: string;
+  /** Only present on the admin order-detail endpoint -- everything the customer added to this
+   *  side, ready to download/reference for printing. */
+  frontDesignElements?: DesignElementDto[];
+  backDesignElements?: DesignElementDto[];
 }
 
 export interface OrderDto {

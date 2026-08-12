@@ -3,10 +3,10 @@ import type { OrderStatus as OrderStatusType } from "@d-shirtak/shared";
 
 const ORDER_STATUS_STYLES: Record<OrderStatusType, string> = {
   [OrderStatus.PENDING]: "bg-amber-100 text-amber-800",
-  [OrderStatus.CONFIRMED]: "bg-sky-100 text-sky-800",
-  [OrderStatus.PROCESSING]: "bg-indigo-100 text-indigo-800",
-  [OrderStatus.SHIPPED]: "bg-violet-100 text-violet-800",
-  [OrderStatus.DELIVERED]: "bg-emerald-100 text-emerald-800",
+  [OrderStatus.CONTACTED]: "bg-sky-100 text-sky-800",
+  [OrderStatus.PRINTING]: "bg-indigo-100 text-indigo-800",
+  [OrderStatus.PACKAGING]: "bg-violet-100 text-violet-800",
+  [OrderStatus.DELIVERY]: "bg-emerald-100 text-emerald-800",
   [OrderStatus.CANCELLED]: "bg-red-100 text-red-800",
 };
 

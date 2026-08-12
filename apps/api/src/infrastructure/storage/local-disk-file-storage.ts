@@ -35,4 +35,14 @@ export class LocalDiskFileStorage implements IFileStorage {
     const full = path.join(this.rootDir, relativePath);
     await fs.rm(full, { force: true });
   }
+
+  async deleteByUrl(url: string): Promise<void> {
+    const prefix = `${this.publicBaseUrl}/`;
+    if (!url.startsWith(prefix)) return;
+    try {
+      await this.delete(url.slice(prefix.length));
+    } catch {
+      // best-effort cleanup -- see IFileStorage.deleteByUrl
+    }
+  }
 }

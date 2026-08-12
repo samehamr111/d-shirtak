@@ -16,12 +16,16 @@ export const DesignSide = {
 } as const;
 export type DesignSide = (typeof DesignSide)[keyof typeof DesignSide];
 
+/** PENDING (just submitted) -> CONTACTED (admin reached out to confirm everything with the
+ *  customer) -> PRINTING (approved, being printed) -> PACKAGING -> DELIVERY (final). CANCELLED is
+ *  a side-branch reachable only from PENDING/CONTACTED -- cancelling deletes the order and any
+ *  designs/files that aren't still needed elsewhere, see AdminOrderService.updateStatus. */
 export const OrderStatus = {
   PENDING: "PENDING",
-  CONFIRMED: "CONFIRMED",
-  PROCESSING: "PROCESSING",
-  SHIPPED: "SHIPPED",
-  DELIVERED: "DELIVERED",
+  CONTACTED: "CONTACTED",
+  PRINTING: "PRINTING",
+  PACKAGING: "PACKAGING",
+  DELIVERY: "DELIVERY",
   CANCELLED: "CANCELLED",
 } as const;
 export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus];
@@ -50,8 +54,8 @@ export type ProductType = (typeof ProductType)[keyof typeof ProductType];
 
 export const ORDER_STATUS_FLOW: OrderStatus[] = [
   OrderStatus.PENDING,
-  OrderStatus.CONFIRMED,
-  OrderStatus.PROCESSING,
-  OrderStatus.SHIPPED,
-  OrderStatus.DELIVERED,
+  OrderStatus.CONTACTED,
+  OrderStatus.PRINTING,
+  OrderStatus.PACKAGING,
+  OrderStatus.DELIVERY,
 ];

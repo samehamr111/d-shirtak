@@ -2,10 +2,10 @@ import type { GarmentType } from "@d-shirtak/shared";
 
 export type OrderStatus =
   | "PENDING"
-  | "CONFIRMED"
-  | "PROCESSING"
-  | "SHIPPED"
-  | "DELIVERED"
+  | "CONTACTED"
+  | "PRINTING"
+  | "PACKAGING"
+  | "DELIVERY"
   | "CANCELLED";
 
 export interface ShippingAddressSnapshot {
@@ -51,11 +51,11 @@ export interface Order {
 }
 
 export const ORDER_STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
-  PENDING: ["CONFIRMED", "CANCELLED"],
-  CONFIRMED: ["PROCESSING", "CANCELLED"],
-  PROCESSING: ["SHIPPED", "CANCELLED"],
-  SHIPPED: ["DELIVERED"],
-  DELIVERED: [],
+  PENDING: ["CONTACTED", "CANCELLED"],
+  CONTACTED: ["PRINTING", "CANCELLED"],
+  PRINTING: ["PACKAGING"],
+  PACKAGING: ["DELIVERY"],
+  DELIVERY: [],
   CANCELLED: [],
 };
 

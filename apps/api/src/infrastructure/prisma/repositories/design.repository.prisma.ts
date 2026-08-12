@@ -27,4 +27,16 @@ export class PrismaDesignRepository implements IDesignRepository {
     const row = await this.db.design.create({ data: input });
     return toDesign(row);
   }
+
+  async delete(id: string): Promise<void> {
+    await this.db.design.delete({ where: { id } });
+  }
+
+  async isReferenced(id: string): Promise<boolean> {
+    const [cartCount, orderCount] = await Promise.all([
+      this.db.cartItem.count({ where: { OR: [{ frontDesignId: id }, { backDesignId: id }] } }),
+      this.db.orderItem.count({ where: { OR: [{ frontDesignId: id }, { backDesignId: id }] } }),
+    ]);
+    return cartCount > 0 || orderCount > 0;
+  }
 }
