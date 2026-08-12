@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import type { DesignAssetDto } from "@d-shirtak/shared";
 import { Container } from "../components/ui/Container";
 import { LinkButton } from "../components/ui/LinkButton";
 import { ProductCard } from "../components/ProductCard";
@@ -14,6 +16,51 @@ const steps = [
   { n: "02", title: "See it live", body: "Swap garment color, flip front to back, check exactly where the print box sits." },
   { n: "03", title: "We print, you wear", body: "Confirm the mockup, checkout with cash on delivery, and we get to work.", accent: true },
 ];
+
+function DesignInspirationCard({ asset }: { asset: DesignAssetDto }) {
+  // Slide 0 is always the flat print; every model shot the admin has added follows it. Cycles
+  // through all of them automatically -- no click needed to see the design worn.
+  const slides = [
+    { key: "print", url: asset.imageUrl, isModel: false },
+    ...asset.modelShots.map((shot) => ({ key: shot.id, url: shot.imageUrl, isModel: true })),
+  ];
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    if (slides.length <= 1) return;
+    const id = setInterval(() => setActiveIndex((i) => (i + 1) % slides.length), 2800);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slides.length]);
+
+  const showingModel = slides[activeIndex]?.isModel ?? false;
+
+  return (
+    <div className="group block overflow-hidden rounded-2xl border border-ink/10 bg-white p-6 transition-shadow hover:shadow-glow">
+      <Link
+        to={showingModel ? "/shop?type=READY_PRINTED" : `/design?asset=${asset.id}`}
+        className="relative flex aspect-square items-center justify-center overflow-hidden"
+      >
+        {slides.map((slide, i) => (
+          <img
+            key={slide.key}
+            src={slide.url}
+            alt={slide.isModel ? `${asset.name} on a model` : asset.name}
+            className={`absolute inset-0 h-full w-full transition-opacity duration-700 group-hover:scale-110 ${
+              slide.isModel ? "object-cover" : "object-contain p-1"
+            } ${i === activeIndex ? "opacity-100" : "opacity-0"}`}
+          />
+        ))}
+      </Link>
+      <p className="mt-3 truncate text-center text-sm font-semibold text-ink/70">{asset.name}</p>
+      {slides.length > 1 && (
+        <p className="mt-0.5 text-center font-mono text-[10px] uppercase tracking-widest text-ink/35">
+          {showingModel ? "on a real shirt" : "the print"}
+        </p>
+      )}
+    </div>
+  );
+}
 
 export function HomePage() {
   const { data: products } = useProducts();
@@ -190,19 +237,7 @@ export function HomePage() {
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
               {gallery.map((asset, index) => (
                 <Reveal key={asset.id} delay={(index % 4) * 0.08}>
-                  <Link
-                    to="/design"
-                    className="group block overflow-hidden rounded-2xl border border-ink/10 bg-white p-6 transition-shadow hover:shadow-glow"
-                  >
-                    <div className="flex aspect-square items-center justify-center">
-                      <img
-                        src={asset.imageUrl}
-                        alt={asset.name}
-                        className="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-110"
-                      />
-                    </div>
-                    <p className="mt-3 truncate text-center text-sm font-semibold text-ink/70">{asset.name}</p>
-                  </Link>
+                  <DesignInspirationCard asset={asset} />
                 </Reveal>
               ))}
             </div>

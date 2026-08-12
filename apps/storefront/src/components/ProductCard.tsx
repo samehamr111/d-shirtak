@@ -6,7 +6,17 @@ import { placeholderRating } from "../lib/placeholder-rating";
 
 const NEW_ARRIVAL_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
-export function ProductCard({ product, index = 0 }: { product: ProductSummaryDto; index?: number }) {
+export function ProductCard({
+  product,
+  index = 0,
+  linkTo,
+}: {
+  product: ProductSummaryDto;
+  index?: number;
+  /** Overrides the default `/shop/:slug` target -- used by DesignPickerPage to carry a preset
+   *  design asset straight into the designer instead of the product detail page. */
+  linkTo?: string;
+}) {
   const isNewArrival = Date.now() - new Date(product.createdAt).getTime() < NEW_ARRIVAL_WINDOW_MS;
   const { rating, reviewCount } = placeholderRating(product.id);
 
@@ -20,7 +30,7 @@ export function ProductCard({ product, index = 0 }: { product: ProductSummaryDto
       className="group"
     >
       <Link
-        to={`/shop/${product.slug}`}
+        to={linkTo ?? `/shop/${product.slug}`}
         className="block overflow-hidden rounded-2xl border border-ink/10 bg-white transition-shadow duration-300 group-hover:shadow-[0_18px_40px_rgba(4,4,4,0.1)]"
       >
         <div className="relative aspect-[4/5] overflow-hidden bg-ink/5">

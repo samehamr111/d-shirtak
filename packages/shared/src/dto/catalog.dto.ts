@@ -105,10 +105,16 @@ export interface DesignCategoryDto {
   name: string;
 }
 
+export interface DesignAssetModelShotDto {
+  id: string;
+  imageUrl: string;
+}
+
 export interface DesignAssetDto {
   id: string;
   name: string;
   imageUrl: string;
+  modelShots: DesignAssetModelShotDto[];
   designCategoryId: string;
 }
 

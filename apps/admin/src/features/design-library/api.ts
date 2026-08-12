@@ -45,6 +45,24 @@ export function useUploadDesignAsset() {
   });
 }
 
+export function useAddDesignAssetModelShot() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, form }: { id: string; form: FormData }) =>
+      api.postForm<DesignAssetDto>(`${BASE}/design-assets/${id}/model-shots`, form),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["design-assets"] }),
+  });
+}
+
+export function useDeleteDesignAssetModelShot() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, shotId }: { id: string; shotId: string }) =>
+      api.delete<DesignAssetDto>(`${BASE}/design-assets/${id}/model-shots/${shotId}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["design-assets"] }),
+  });
+}
+
 export function useDeleteDesignAsset() {
   const queryClient = useQueryClient();
   return useMutation({

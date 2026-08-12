@@ -12,6 +12,8 @@ export interface IDesignAssetRepository {
   listAll(): Promise<DesignAsset[]>;
   listByCategory(designCategoryId: string): Promise<DesignAsset[]>;
   findById(id: string): Promise<DesignAsset | null>;
-  create(input: Omit<DesignAsset, "id">): Promise<DesignAsset>;
+  create(input: { name: string; imageUrl: string; designCategoryId: string }): Promise<DesignAsset>;
+  addModelShot(designAssetId: string, imageUrl: string): Promise<DesignAsset>;
+  deleteModelShot(designAssetId: string, modelShotId: string): Promise<DesignAsset>;
   delete(id: string): Promise<void>;
 }

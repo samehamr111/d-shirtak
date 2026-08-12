@@ -1,6 +1,13 @@
-import { useRef, useState, type FormEvent } from "react";
+import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import type { DesignAssetDto } from "@d-shirtak/shared";
-import { useDesignCategories, useDeleteDesignAsset, useDesignAssets, useUploadDesignAsset } from "./api";
+import {
+  useAddDesignAssetModelShot,
+  useDeleteDesignAsset,
+  useDeleteDesignAssetModelShot,
+  useDesignCategories,
+  useDesignAssets,
+  useUploadDesignAsset,
+} from "./api";
 import { Field, Input, PrimaryButton, Select, DangerButton } from "../../components/form";
 import { ApiError } from "../../lib/api-client";
 import { ModelShotPromptModal } from "../products/ModelShotPromptModal";
@@ -10,11 +17,41 @@ interface ModelShotTarget extends ProductColorTarget {
   designImageUrl: string;
 }
 
+function ModelShotUploadButton({ label, onPick, disabled }: { label: string; onPick: (file: File) => void; disabled: boolean }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) onPick(file);
+    e.target.value = "";
+  };
+  return (
+    <>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        className="hidden"
+        onChange={handleChange}
+      />
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => inputRef.current?.click()}
+        className="text-xs font-medium text-brand-600 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {label}
+      </button>
+    </>
+  );
+}
+
 export function DesignAssetsPanel() {
   const { data: categories } = useDesignCategories();
   const { data: assets, isLoading } = useDesignAssets();
   const uploadAsset = useUploadDesignAsset();
   const deleteAsset = useDeleteDesignAsset();
+  const addModelShot = useAddDesignAssetModelShot();
+  const deleteModelShot = useDeleteDesignAssetModelShot();
 
   const [name, setName] = useState("");
   const [designCategoryId, setDesignCategoryId] = useState("");
@@ -111,6 +148,43 @@ export function DesignAssetsPanel() {
               <p className="truncate text-sm font-medium">{asset.name}</p>
               <p className="mb-2 truncate text-xs text-ink/50">{categoryName(asset.designCategoryId)}</p>
 
+              <div className="mb-2 border-t border-ink/10 pt-2">
+                <p className="mb-1 text-xs font-semibold text-ink/70">
+                  Model shots {asset.modelShots.length > 0 && `(${asset.modelShots.length})`}
+                </p>
+                {asset.modelShots.length > 0 && (
+                  <div className="mb-1.5 flex flex-wrap gap-1.5">
+                    {asset.modelShots.map((shot) => (
+                      <div key={shot.id} className="group relative">
+                        <img
+                          src={shot.imageUrl}
+                          alt={`${asset.name} on a model`}
+                          className="h-16 w-16 rounded border border-ink/10 object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => deleteModelShot.mutate({ id: asset.id, shotId: shot.id })}
+                          disabled={deleteModelShot.isPending}
+                          title="Remove this model shot"
+                          className="absolute -right-1.5 -top-1.5 hidden h-5 w-5 items-center justify-center rounded-full bg-red-600 text-xs font-bold leading-none text-white group-hover:flex"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <ModelShotUploadButton
+                  label="Add model shot"
+                  disabled={addModelShot.isPending}
+                  onPick={(file) => {
+                    const form = new FormData();
+                    form.set("file", file, file.name);
+                    addModelShot.mutate({ id: asset.id, form });
+                  }}
+                />
+              </div>
+
               {generatingId === asset.id ? (
                 <ProductColorPicker
                   onConfirm={(target) => confirmGenerate(asset, target)}
@@ -123,7 +197,7 @@ export function DesignAssetsPanel() {
                     onClick={() => setGeneratingId(asset.id)}
                     className="text-xs font-medium text-brand-600 hover:underline"
                   >
-                    Generate model shot
+                    Generate prompt…
                   </button>
                   <DangerButton onClick={() => deleteAsset.mutate(asset.id)} disabled={deleteAsset.isPending}>
                     Delete

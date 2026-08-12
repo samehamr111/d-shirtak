@@ -53,8 +53,8 @@ export function ModelShotPromptModal({
   return (
     <Modal title={`Model-shot prompt — ${productName} / ${colorName}`} onClose={onClose}>
       <p className="mb-4 text-sm text-ink/60">
-        Attach the design image below alongside one of these prompts in your image model, then upload the result back
-        in as a model front/back shot.
+        Attach the design image below alongside one of these prompts in your image model, then close this and use the
+        upload button on that card to save the result.
       </p>
       <div className="mb-4 flex items-center gap-3 rounded border border-ink/15 bg-ink/[0.03] p-3">
         <img src={designImageUrl} alt="Design to feature" className="h-16 w-16 rounded border border-ink/10 object-contain bg-white" />

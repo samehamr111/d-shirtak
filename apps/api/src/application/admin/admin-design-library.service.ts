@@ -65,6 +65,18 @@ export class AdminDesignLibraryService {
     return this.designAssets.create({ ...meta, imageUrl: saved.url });
   }
 
+  async addDesignAssetModelShot(
+    id: string,
+    file: { buffer: Buffer; originalName: string },
+  ): Promise<DesignAssetDto> {
+    const saved = await this.fileStorage.saveBuffer("assets", file.originalName, file.buffer);
+    return this.designAssets.addModelShot(id, saved.url);
+  }
+
+  deleteDesignAssetModelShot(id: string, modelShotId: string): Promise<DesignAssetDto> {
+    return this.designAssets.deleteModelShot(id, modelShotId);
+  }
+
   deleteDesignAsset(id: string): Promise<void> {
     return this.designAssets.delete(id);
   }

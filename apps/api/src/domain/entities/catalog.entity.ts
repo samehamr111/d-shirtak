@@ -83,10 +83,16 @@ export interface DesignCategory {
   name: string;
 }
 
+export interface DesignAssetModelShot {
+  id: string;
+  imageUrl: string;
+}
+
 export interface DesignAsset {
   id: string;
   name: string;
   imageUrl: string;
+  modelShots: DesignAssetModelShot[];
   designCategoryId: string;
 }
 

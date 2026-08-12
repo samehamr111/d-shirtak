@@ -71,6 +71,28 @@ adminDesignLibraryRouter.post(
     res.status(201).json(created);
   }),
 );
+adminDesignLibraryRouter.post(
+  "/design-assets/:id/model-shots",
+  imageUpload.single("file"),
+  asyncHandler(async (req, res) => {
+    if (!req.file) throw new ValidationError("An image file is required");
+    const updated = await appServices.adminDesignLibrary.addDesignAssetModelShot(req.params.id as string, {
+      buffer: req.file.buffer,
+      originalName: req.file.originalname,
+    });
+    res.status(201).json(updated);
+  }),
+);
+adminDesignLibraryRouter.delete(
+  "/design-assets/:id/model-shots/:shotId",
+  asyncHandler(async (req, res) => {
+    const updated = await appServices.adminDesignLibrary.deleteDesignAssetModelShot(
+      req.params.id as string,
+      req.params.shotId as string,
+    );
+    res.json(updated);
+  }),
+);
 adminDesignLibraryRouter.delete(
   "/design-assets/:id",
   asyncHandler(async (req, res) => {
