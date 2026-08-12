@@ -20,17 +20,22 @@ datasource db {
 // ---------------------------------------------------------------------------
 
 model User {
-  id           String   @id @default(cuid())
-  username     String
-  email        String   @unique
+  id            String    @id @default(cuid())
+  username      String
+  email         String    @unique
   /// Egyptian mobile, e.g. "+201012345678" -- mandatory for every new signup (see PendingSignup)
   /// so support can actually reach a customer, but nullable here since existing users predate
   /// this field and were never asked for one.
-  phone        String?
-  passwordHash String
-  role         String   @default("CUSTOMER")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  phone         String?
+  passwordHash  String
+  role          String    @default("CUSTOMER")
+  /// Set by an admin after a violation (see AdminUserService.blockUser) -- a blocked user can't
+  /// log in (checked in AuthService.login) and has every active session revoked immediately.
+  isBlocked     Boolean   @default(false)
+  blockedReason String?
+  blockedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   addresses     Address[]
   refreshTokens RefreshToken[]
@@ -267,7 +272,7 @@ model DesignAsset {
   imageUrl         String
   designCategoryId String
 
-  designCategory DesignCategory          @relation(fields: [designCategoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  designCategory DesignCategory         @relation(fields: [designCategoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   promotedFrom   UserUpload?
   /// Photos of this exact design printed on a real garment -- optional, admin-uploaded (see the
   /// "Generate prompt" helper), shown alongside the flat print on the storefront. A design can

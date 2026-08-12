@@ -7,6 +7,7 @@ import {
   ShoppingCart,
   SlidersHorizontal,
   Type,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "../auth/auth-context";
@@ -29,6 +30,10 @@ const NAV_GROUPS = [
   {
     label: "Sales",
     items: [{ to: "/orders", label: "Orders", end: false, icon: ShoppingCart }],
+  },
+  {
+    label: "Accounts",
+    items: [{ to: "/users", label: "Users", end: false, icon: Users }],
   },
 ] satisfies { label: string; items: { to: string; label: string; end: boolean; icon: LucideIcon }[] }[];
 

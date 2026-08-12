@@ -18,6 +18,7 @@ import { userUploadRouter } from "./routes/user-upload.routes.js";
 import { adminCatalogRouter } from "./routes/admin/admin-catalog.routes.js";
 import { adminDesignLibraryRouter } from "./routes/admin/admin-design-library.routes.js";
 import { adminOrderRouter } from "./routes/admin/admin-order.routes.js";
+import { adminUserRouter } from "./routes/admin/admin-user.routes.js";
 
 export function createApp() {
   const app = express();
@@ -49,6 +50,7 @@ export function createApp() {
   app.use("/admin/catalog", adminCatalogRouter);
   app.use("/admin/design-library", adminDesignLibraryRouter);
   app.use("/admin/orders", adminOrderRouter);
+  app.use("/admin/users", adminUserRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

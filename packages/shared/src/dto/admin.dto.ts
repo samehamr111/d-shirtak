@@ -120,3 +120,28 @@ export interface DashboardStatsDto {
   avgOrderValue: number;
   dailyRevenue: { date: string; revenue: number }[];
 }
+
+export const blockUserSchema = z.object({
+  reason: z.string().min(3).max(300),
+});
+export type BlockUserInput = z.infer<typeof blockUserSchema>;
+
+/** Admin Users list -- customer (never admin) accounts only, each with how many orders they've
+ *  placed so support can see who's a real/repeat customer at a glance. */
+export interface AdminUserDto {
+  id: string;
+  username: string;
+  email: string;
+  phone: string | null;
+  orderCount: number;
+  isBlocked: boolean;
+  blockedReason: string | null;
+  blockedAt: string | null;
+  createdAt: string;
+}
+
+export interface AdminUserStatsDto {
+  totalCustomers: number;
+  newLast7Days: number;
+  newLast30Days: number;
+}

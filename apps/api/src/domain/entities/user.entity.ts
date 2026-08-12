@@ -9,7 +9,15 @@ export interface User {
   phone: string | null;
   passwordHash: string;
   role: Role;
+  isBlocked: boolean;
+  blockedReason: string | null;
+  blockedAt: Date | null;
   createdAt: Date;
+}
+
+/** A customer with how many orders they've placed -- the admin Users list view. */
+export interface UserWithOrderCount extends User {
+  orderCount: number;
 }
 
 export interface Address {

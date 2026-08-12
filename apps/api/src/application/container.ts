@@ -8,6 +8,7 @@ import { OrderService } from "./order/order.service.js";
 import { AdminCatalogService } from "./admin/admin-catalog.service.js";
 import { AdminDesignLibraryService } from "./admin/admin-design-library.service.js";
 import { AdminOrderService } from "./admin/admin-order.service.js";
+import { AdminUserService } from "./admin/admin-user.service.js";
 import { UserUploadService } from "./uploads/user-upload.service.js";
 
 export const appServices = {
@@ -74,5 +75,6 @@ export const appServices = {
     repositories.designAsset,
     services.fileStorage,
   ),
+  adminUser: new AdminUserService(repositories.user, repositories.refreshToken),
   userUpload: new UserUploadService(repositories.userUpload, repositories.user, services.fileStorage),
 };

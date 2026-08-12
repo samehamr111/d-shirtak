@@ -10,6 +10,7 @@ import { FontsPage } from "./features/fonts/FontsPage";
 import { DesignLibraryPage } from "./features/design-library/DesignLibraryPage";
 import { OrdersListPage } from "./features/orders/OrdersListPage";
 import { OrderDetailPage } from "./features/orders/OrderDetailPage";
+import { UsersListPage } from "./features/users/UsersListPage";
 
 export function App() {
   return (
@@ -26,6 +27,7 @@ export function App() {
         <Route path="/design-library" element={<DesignLibraryPage />} />
         <Route path="/orders" element={<OrdersListPage />} />
         <Route path="/orders/:id" element={<OrderDetailPage />} />
+        <Route path="/users" element={<UsersListPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

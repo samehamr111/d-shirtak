@@ -1,6 +1,6 @@
 import { randomInt } from "node:crypto";
 import type { AuthResponseDto, LoginInput, ResendSignupOtpInput, SignupInput, SignupStartedDto, VerifySignupInput } from "@d-shirtak/shared";
-import { ConflictError, UnauthorizedError, ValidationError } from "../../domain/errors.js";
+import { ConflictError, ForbiddenError, UnauthorizedError, ValidationError } from "../../domain/errors.js";
 import type { IUserRepository } from "../../domain/ports/repositories/user.repository.js";
 import type { IRefreshTokenRepository } from "../../domain/ports/repositories/refresh-token.repository.js";
 import type { IPendingSignupRepository } from "../../domain/ports/repositories/pending-signup.repository.js";
@@ -128,6 +128,12 @@ export class AuthService {
 
     const valid = await this.hasher.compare(input.password, user.passwordHash);
     if (!valid) throw new UnauthorizedError("Invalid email or password");
+
+    // Checked after the password, not before -- otherwise the error response itself would leak
+    // which emails are blocked to anyone who doesn't even know the password.
+    if (user.isBlocked) {
+      throw new ForbiddenError("This account has been blocked. Contact support if you think this is a mistake.");
+    }
 
     return this.issueTokens(user);
   }

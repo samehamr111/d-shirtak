@@ -9,6 +9,7 @@ export const ROUTE_LABELS: Record<string, string> = {
   fonts: "Fonts",
   "design-library": "Design Library",
   orders: "Orders",
+  users: "Users",
 };
 
 export interface Crumb {
