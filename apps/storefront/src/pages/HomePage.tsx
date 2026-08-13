@@ -68,6 +68,12 @@ export function HomePage() {
   const featured = products?.slice(0, 4);
   const gallery = designAssets?.slice(0, 8);
   const hero = products?.find((p) => p.thumbnailUrl);
+  // The "START HERE" nav cards below used a purely decorative striped placeholder for both
+  // Ready-Printed and Shop All -- looked like the same static image on every card. Show a real
+  // product photo once one exists for that category, falling back to the placeholder otherwise
+  // (there are currently zero ready-printed products, so that card keeps its placeholder for now).
+  const readyPrintedPick = products?.find((p) => p.productType === "READY_PRINTED" && p.thumbnailUrl);
+  const shopAllPick = products?.find((p) => p.thumbnailUrl && p.id !== hero?.id) ?? hero;
 
   return (
     <div className="overflow-x-clip">
@@ -181,8 +187,11 @@ export function HomePage() {
               to="/shop?type=READY_PRINTED"
               className="group flex flex-col justify-between rounded-2xl border border-ink/[.08] bg-white p-6 transition-transform hover:-translate-y-2"
             >
-              <div className="flex h-[120px] items-end rounded-xl bg-[repeating-linear-gradient(135deg,#f3f2ee_0px,#f3f2ee_10px,#eceae4_10px,#eceae4_20px)] p-2.5 font-mono text-[10px] text-ink/40">
-                printed range
+              <div className="relative flex h-[120px] items-end overflow-hidden rounded-xl bg-[repeating-linear-gradient(135deg,#f3f2ee_0px,#f3f2ee_10px,#eceae4_10px,#eceae4_20px)] p-2.5 font-mono text-[10px] text-ink/40">
+                {readyPrintedPick && (
+                  <img src={readyPrintedPick.thumbnailUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                )}
+                <span className="relative rounded bg-ink/70 px-1.5 py-0.5 text-paper">printed range</span>
               </div>
               <div>
                 <div className="mt-4 font-display text-[34px] leading-[0.95]">READY-PRINTED</div>
@@ -195,8 +204,11 @@ export function HomePage() {
               to="/shop"
               className="group flex flex-col justify-between rounded-2xl border border-ink/[.08] bg-white p-6 transition-transform hover:-translate-y-2"
             >
-              <div className="flex h-[120px] items-end rounded-xl bg-[repeating-linear-gradient(135deg,#f3f2ee_0px,#f3f2ee_10px,#eceae4_10px,#eceae4_20px)] p-2.5 font-mono text-[10px] text-ink/40">
-                the full rack
+              <div className="relative flex h-[120px] items-end overflow-hidden rounded-xl bg-[repeating-linear-gradient(135deg,#f3f2ee_0px,#f3f2ee_10px,#eceae4_10px,#eceae4_20px)] p-2.5 font-mono text-[10px] text-ink/40">
+                {shopAllPick?.thumbnailUrl && (
+                  <img src={shopAllPick.thumbnailUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                )}
+                <span className="relative rounded bg-ink/70 px-1.5 py-0.5 text-paper">the full rack</span>
               </div>
               <div>
                 <div className="mt-4 font-display text-[34px] leading-[0.95]">SHOP ALL</div>

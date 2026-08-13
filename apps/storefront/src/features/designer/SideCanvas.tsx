@@ -1,6 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { Canvas, FabricImage, FabricObject, InteractiveFabricObject, IText, Rect } from "fabric";
 import { CANVAS_HEIGHT, CANVAS_WIDTH, PX_PER_CM } from "./canvas-constants";
+import { removeBackground } from "./remove-background";
 
 // Fabric's default selection handles (13px, invisible "transparent" corners, a 24px touch
 // target) are sized for mouse precision -- on a phone they're nearly impossible to grab
@@ -78,9 +79,18 @@ export interface TextStyle {
   fill: string;
 }
 
+export interface AddImageMeta {
+  /** The un-background-removed source -- what "restore" reverts to. Defaults to `url` itself. */
+  originalUrl?: string;
+  bgRemoved?: boolean;
+}
+
 export interface SideCanvasHandle {
   addText: (text: string, style: TextStyle) => void;
-  addImageFromUrl: (url: string, crossOrigin?: boolean) => Promise<void>;
+  addImageFromUrl: (url: string, crossOrigin?: boolean, meta?: AddImageMeta) => Promise<void>;
+  /** Toggles the selected image between its background-removed and original version. No-ops if
+   *  the current selection isn't an image. */
+  toggleSelectedBackground: () => Promise<void>;
   deleteSelected: () => void;
   applyTextStyle: (style: Partial<TextStyle>) => void;
   bringForward: () => void;
@@ -95,11 +105,18 @@ export interface SideCanvasHandle {
   loadJson: (json: Record<string, unknown> | null) => Promise<void>;
 }
 
+export interface CanvasSelection {
+  isText: boolean;
+  style?: TextStyle;
+  isImage?: boolean;
+  bgRemoved?: boolean;
+}
+
 interface SideCanvasProps {
   backgroundUrl: string | undefined;
   printArea: PrintAreaCm | undefined;
   visible: boolean;
-  onSelectionChange?: (selection: { isText: boolean; style?: TextStyle } | null) => void;
+  onSelectionChange?: (selection: CanvasSelection | null) => void;
   onBackgroundError?: () => void;
 }
 
@@ -111,6 +128,10 @@ export const SideCanvas = forwardRef<SideCanvasHandle, SideCanvasProps>(function
   const fabricRef = useRef<Canvas | null>(null);
   const guideRef = useRef<Rect | null>(null);
   const selectedRef = useRef<IText | null>(null);
+  // Tracks each image's un-background-removed source and current toggle state, keyed by the
+  // fabric object itself -- not serialized/persisted, purely a live-editing convenience (once
+  // exported, whatever's on the canvas is baked in, same as a text edit).
+  const imageMetaRef = useRef(new WeakMap<FabricObject, { originalUrl: string; bgRemoved: boolean }>());
   // Callers (e.g. DesignerPage) pass onBackgroundError as an inline arrow function, which is a
   // new reference every render. Keeping it out of the image-load effect's dependency array via a
   // ref -- rather than listing it there -- stops that effect from re-fetching the background
@@ -139,6 +160,9 @@ export const SideCanvas = forwardRef<SideCanvasHandle, SideCanvasProps>(function
           isText: true,
           style: { fontFamily: String(active.fontFamily), fontSize: Number(active.fontSize), fill: String(active.fill) },
         });
+      } else if (active instanceof FabricImage) {
+        const meta = imageMetaRef.current.get(active);
+        onSelectionChange?.({ isText: false, isImage: true, bgRemoved: meta?.bgRemoved ?? false });
       } else {
         onSelectionChange?.({ isText: false });
       }
@@ -273,7 +297,7 @@ export const SideCanvas = forwardRef<SideCanvasHandle, SideCanvasProps>(function
         canvas.setActiveObject(textbox);
         keepGuideOnTop();
       },
-      async addImageFromUrl(url, crossOrigin = true) {
+      async addImageFromUrl(url, crossOrigin = true, meta) {
         const canvas = fabricRef.current;
         if (!canvas) return;
         const img = await FabricImage.fromURL(url, crossOrigin ? { crossOrigin: "anonymous" } : {});
@@ -282,9 +306,32 @@ export const SideCanvas = forwardRef<SideCanvasHandle, SideCanvasProps>(function
         const centerX = printArea ? (printArea.offsetXCm + printArea.widthCm / 2) * PX_PER_CM : CANVAS_WIDTH / 2;
         const centerY = printArea ? (printArea.offsetYCm + printArea.heightCm / 2) * PX_PER_CM : CANVAS_HEIGHT / 2;
         img.set({ left: centerX, top: centerY, originX: "center", originY: "center", scaleX: scale, scaleY: scale });
+        imageMetaRef.current.set(img, { originalUrl: meta?.originalUrl ?? url, bgRemoved: meta?.bgRemoved ?? false });
         canvas.add(img);
         canvas.setActiveObject(img);
         keepGuideOnTop();
+      },
+      async toggleSelectedBackground() {
+        const canvas = fabricRef.current;
+        const active = canvas?.getActiveObject();
+        if (!canvas || !active || !(active instanceof FabricImage)) return;
+        // No tracked entry (e.g. an object loaded from a previously-saved design) -- fall back to
+        // treating its current source as "original" so toggling still works from here on.
+        const existing = imageMetaRef.current.get(active);
+        const meta = existing ?? { originalUrl: active.getSrc(), bgRemoved: false };
+        if (!meta.originalUrl) return;
+
+        if (meta.bgRemoved) {
+          await active.setSrc(meta.originalUrl, { crossOrigin: "anonymous" });
+          meta.bgRemoved = false;
+        } else {
+          const processed = await removeBackground(meta.originalUrl).catch(() => meta.originalUrl);
+          await active.setSrc(processed, {});
+          meta.bgRemoved = processed !== meta.originalUrl;
+        }
+        imageMetaRef.current.set(active, meta);
+        canvas.requestRenderAll();
+        onSelectionChange?.({ isText: false, isImage: true, bgRemoved: meta.bgRemoved });
       },
       deleteSelected() {
         const canvas = fabricRef.current;

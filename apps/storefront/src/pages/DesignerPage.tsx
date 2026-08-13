@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams, Link } from "react-router-dom";
 import type { FontDto } from "@d-shirtak/shared";
-import type { TextStyle } from "../features/designer/SideCanvas";
+import type { CanvasSelection, TextStyle } from "../features/designer/SideCanvas";
 import { SideCanvas, type SideCanvasHandle } from "../features/designer/SideCanvas";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "../features/designer/canvas-constants";
+import { removeBackground } from "../features/designer/remove-background";
 import { useFontLoader } from "../features/designer/use-load-web-fonts";
 import { useDesignAssets, useDesignCategories, useFonts, useProduct, useStoreSettings } from "../features/catalog/catalog-api";
 import { useSaveDesign } from "../features/designer/design-api";
@@ -97,7 +98,7 @@ export function DesignerPage() {
   const [textDraftEn, setTextDraftEn] = useState("");
   const [textDraftAr, setTextDraftAr] = useState("");
   const [textStyle, setTextStyle] = useState<TextStyle>(DEFAULT_TEXT_STYLE);
-  const [selection, setSelection] = useState<{ isText: boolean; style?: TextStyle } | null>(null);
+  const [selection, setSelection] = useState<CanvasSelection | null>(null);
   const [busy, setBusy] = useState(false);
   // Adding an image (an upload, a design-library pick, or the preset-design auto-add) means
   // waiting on the browser to actually load/decode it before it shows up on the canvas -- with
@@ -118,6 +119,28 @@ export function DesignerPage() {
     setElementCounts({ front: frontRef.current?.elementCount() ?? 0, back: backRef.current?.elementCount() ?? 0 });
   }
 
+  // Design-library graphics are admin-curated logos/icons, typically flat art on a solid
+  // background -- unlike a customer's own photo, there's no reason to make them opt into
+  // removing it, so this always runs automatically. Falls back to the original image if removal
+  // fails for any reason (never let that block adding the design at all).
+  async function addLibraryDesignToCanvas(
+    canvasRef: React.RefObject<SideCanvasHandle>,
+    imageUrl: string,
+    failureMessage = "Couldn't add that design to the canvas. Try again.",
+  ) {
+    setAddingElement(true);
+    try {
+      const processed = await removeBackground(imageUrl).catch(() => imageUrl);
+      await canvasRef.current?.addImageFromUrl(processed, true, { originalUrl: imageUrl, bgRemoved: processed !== imageUrl });
+      syncElementCounts();
+    } catch (err) {
+      console.error("addImageFromUrl (design library) failed:", err);
+      setError(failureMessage);
+    } finally {
+      setAddingElement(false);
+    }
+  }
+
   useEffect(() => setSelection(null), [side]);
 
   useEffect(() => {
@@ -135,15 +158,12 @@ export function DesignerPage() {
     const asset = designAssets.find((a) => a.id === presetAssetId);
     if (!asset) return;
     presetAppliedRef.current = true;
-    setAddingElement(true);
-    frontRef.current
-      ?.addImageFromUrl(asset.imageUrl, true)
-      .then(syncElementCounts)
-      .catch((err) => {
-        console.error("addImageFromUrl (preset design) failed:", err);
-        setError("Couldn't add that design to the canvas automatically — pick it from the Designs tab instead.");
-      })
-      .finally(() => setAddingElement(false));
+    addLibraryDesignToCanvas(
+      frontRef,
+      asset.imageUrl,
+      "Couldn't add that design to the canvas automatically — pick it from the Designs tab instead.",
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [presetAssetId, designAssets]);
 
   const activeColorId = colorId ?? product?.colors[0]?.colorId ?? null;
@@ -372,6 +392,25 @@ export function DesignerPage() {
 
               {selection && (
                 <div className="absolute -top-[52px] left-1/2 flex -translate-x-1/2 gap-1.5 rounded-full bg-ink p-1.5 shadow-pop">
+                  {selection.isImage && (
+                    <button
+                      disabled={addingElement}
+                      onClick={async () => {
+                        setAddingElement(true);
+                        try {
+                          await activeCanvasRef.current?.toggleSelectedBackground();
+                        } catch (err) {
+                          console.error("toggleSelectedBackground failed:", err);
+                          setError("Couldn't change the background. Try again.");
+                        } finally {
+                          setAddingElement(false);
+                        }
+                      }}
+                      className="rounded-full px-3 py-2 text-[11.5px] font-medium text-white hover:bg-white/10 disabled:opacity-40"
+                    >
+                      {selection.bgRemoved ? "Restore Original" : "Remove BG"}
+                    </button>
+                  )}
                   <button
                     onClick={() => activeCanvasRef.current?.bringForward()}
                     className="rounded-full px-3 py-2 text-[11.5px] font-medium text-white hover:bg-white/10"
@@ -556,12 +595,7 @@ export function DesignerPage() {
                         key={asset.id}
                         disabled={addingElement}
                         onClick={() => {
-                          setAddingElement(true);
-                          activeCanvasRef.current
-                            ?.addImageFromUrl(asset.imageUrl, true)
-                            .then(syncElementCounts)
-                            .catch(() => setError("Couldn't add that design to the canvas. Try again."))
-                            .finally(() => setAddingElement(false));
+                          addLibraryDesignToCanvas(activeCanvasRef, asset.imageUrl);
                           setDrawerOpen(false);
                         }}
                         className="flex h-[100px] items-center justify-center rounded-xl border border-ink/[.08] bg-paper p-3 transition-transform hover:scale-[1.04] disabled:opacity-40 disabled:pointer-events-none"
