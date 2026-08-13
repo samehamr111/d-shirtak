@@ -4,6 +4,7 @@ import compression from "compression";
 import cookieParser from "cookie-parser";
 import path from "node:path";
 import { env } from "../../infrastructure/config/env.js";
+import { prisma } from "../../infrastructure/prisma/client.js";
 import { services } from "../../infrastructure/container.js";
 import { R2FileStorage } from "../../infrastructure/storage/r2-file-storage.js";
 import { requireAuth, requireRole } from "./middleware/auth.middleware.js";
@@ -42,6 +43,20 @@ export function createApp() {
   }
 
   app.get("/health", (_req, res) => res.json({ status: "ok" }));
+  // Separate from /health on purpose -- a container-liveness probe shouldn't fail (and get the
+  // whole app restarted) just because the database happens to be slow or mid-resume. This one's
+  // only for the scheduled keep-warm ping (see .github/workflows/keep-db-warm.yml), which needs
+  // to actually touch the database to stop Azure SQL's serverless tier from auto-pausing after
+  // a period of inactivity -- that's what was causing the "can't reach database" errors right
+  // after any idle stretch.
+  app.get("/health/db", async (_req, res) => {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      res.json({ status: "ok" });
+    } catch {
+      res.status(503).json({ status: "unreachable" });
+    }
+  });
 
   app.use("/auth", authRouter);
   app.use("/catalog", catalogRouter);
