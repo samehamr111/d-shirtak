@@ -1,14 +1,14 @@
 name: Keep DB warm
 
 # Azure SQL's serverless tier auto-pauses after a period of inactivity, and the first request
-# after that has to wait for it to resume -- this pings a DB-touching endpoint often enough
-# during hours the store is actually likely to get traffic that it never goes idle long enough to
-# pause. Deliberately does NOT run 24/7: letting it pause overnight (roughly 00:00-06:00 Cairo
-# time, UTC+2 -- Egypt has no DST) keeps Azure's pay-per-use savings for the hours nobody's
-# shopping anyway. Adjust the cron window below if that assumption stops being true.
+# after that has to wait for it to resume -- this pings a DB-touching endpoint often enough that
+# it never goes idle long enough to pause, at any hour. That means it no longer scales to zero
+# overnight -- constant low-level compute instead of Azure's pay-per-use pausing -- which is the
+# deliberate tradeoff for actually eliminating cold starts around the clock instead of just during
+# business hours.
 on:
   schedule:
-    - cron: "0,20,40 4-21 * * *"
+    - cron: "*/15 * * * *"
   workflow_dispatch: {}
 
 jobs:
