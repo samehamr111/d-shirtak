@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import type { AddressInput } from "@d-shirtak/shared";
+import { calcShippingFee, type AddressInput } from "@d-shirtak/shared";
 import { trackBeginCheckout, trackPurchase } from "../lib/analytics";
 import { Container } from "../components/ui/Container";
 import { Button } from "../components/ui/Button";
@@ -76,6 +76,8 @@ export function CheckoutPage() {
 
   const effectiveSelection = selectedAddressId ?? addresses?.find((a) => a.isDefault)?.id ?? addresses?.[0]?.id ?? "new";
   const items = cart?.items ?? [];
+  const subtotal = cart?.subtotal ?? 0;
+  const shippingFee = calcShippingFee(subtotal);
 
   async function handlePlaceOrder() {
     setError(null);
@@ -201,12 +203,36 @@ export function CheckoutPage() {
               </li>
             ))}
           </ul>
+          <div className="flex flex-col gap-2 border-b border-dashed border-white/20 py-4 text-sm text-white/75">
+            <div className="flex justify-between">
+              <span>Subtotal</span>
+              <span className="text-white">EGP {subtotal.toFixed(0)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Shipping</span>
+              {shippingFee === 0 ? (
+                <span className="font-semibold text-brand-500">Free</span>
+              ) : (
+                <span className="text-white">EGP {shippingFee.toFixed(0)}</span>
+              )}
+            </div>
+          </div>
           <div className="flex items-baseline justify-between py-4">
             <span className="font-display text-xl tracking-wide text-white">TOTAL</span>
-            <span className="text-2xl font-bold text-brand-500">EGP {(cart?.subtotal ?? 0).toFixed(0)}</span>
+            <span className="text-2xl font-bold text-brand-500">EGP {(subtotal + shippingFee).toFixed(0)}</span>
           </div>
           <p className="text-[11px] leading-relaxed text-white/40">
-            You pay the courier when it arrives. Nothing charged now.
+            You pay the courier when it arrives. Nothing charged now. Ships within 1 week.
+            Ready-printed items get 7-day returns; custom items are made just for you and can
+            only be exchanged for a print defect or wrong item.{" "}
+            <a
+              href="https://www.instagram.com/d_shirtak/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-white/60 hover:text-brand-500"
+            >
+              Questions? Message us on Instagram.
+            </a>
           </p>
           {error && <p className="mt-4 text-sm font-medium text-red-400">{error}</p>}
           <Button

@@ -1,5 +1,4 @@
-const FREE_SHIPPING_THRESHOLD = 1500;
-const FLAT_SHIPPING_FEE = 75;
+export { calcShippingFee } from "@d-shirtak/shared";
 
 export function effectiveVariantPrice(
   variant: { priceOverride: number | null },
@@ -11,10 +10,6 @@ export function effectiveVariantPrice(
 export function calcSubtotal(items: { unitPrice: number; quantity: number }[]): number {
   const cents = items.reduce((sum, item) => sum + Math.round(item.unitPrice * 100) * item.quantity, 0);
   return cents / 100;
-}
-
-export function calcShippingFee(subtotal: number): number {
-  return subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : FLAT_SHIPPING_FEE;
 }
 
 const CHARGEABLE_CANVAS_TYPES = new Set(["i-text", "text", "textbox", "image"]);

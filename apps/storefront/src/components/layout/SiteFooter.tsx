@@ -18,6 +18,14 @@ export function SiteFooter() {
           >
             Start Designing
           </Link>
+          <a
+            href="https://www.instagram.com/d_shirtak/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-5 flex w-fit items-center gap-1.5 text-sm font-semibold text-ink/60 hover:text-brand-700"
+          >
+            Questions? Message us on Instagram →
+          </a>
         </div>
 
         <div>

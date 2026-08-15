@@ -243,6 +243,25 @@ export function DesignerPage() {
     setDrawerOpen(false);
   }
 
+  // Clicking a font card doubles as "add my text" (see useFont above) -- that's not obvious on
+  // its own, since nothing else in this tab signals it's the commit action, and it's the only
+  // input in the whole designer where typing alone doesn't produce a visible result the way an
+  // image upload does. This is the explicit, unmissable equivalent: always adds a new text
+  // object (never restyles an existing selection, unlike useFont) using whichever font is
+  // already chosen if it's actually one of this language's fonts, else that language's first.
+  async function addTextDraft(language: "EN" | "AR") {
+    const fonts = language === "AR" ? arFonts : enFonts;
+    const draft = (language === "AR" ? textDraftAr : textDraftEn).trim();
+    if (fonts.length === 0 || !draft) return;
+    const font = fonts.find((f) => f.fontFamily === textStyle.fontFamily) ?? fonts[0]!;
+    await loadFont(font);
+    const style = { ...textStyle, fontFamily: font.fontFamily };
+    setTextStyle(style);
+    activeCanvasRef.current?.addText(draft, style);
+    syncElementCounts();
+    setDrawerOpen(false);
+  }
+
   function isFontActive(font: FontDto): boolean {
     return selection?.isText ? selection.style?.fontFamily === font.fontFamily : false;
   }
@@ -666,7 +685,18 @@ export function DesignerPage() {
                     dir="ltr"
                     className="min-h-[64px] w-full resize-none rounded-xl border-[1.5px] border-ink/[.14] bg-white px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/25"
                   />
-                  <div className="mt-2.5 flex flex-col gap-2">
+                  <Button
+                    size="sm"
+                    className="mt-2.5 w-full"
+                    disabled={!textDraftEn.trim() || enFonts.length === 0}
+                    onClick={() => addTextDraft("EN")}
+                  >
+                    Add text to design
+                  </Button>
+                  {enFonts.length > 0 && (
+                    <p className="mt-3 text-[11px] text-ink/45">Or tap a style below to add it in that font</p>
+                  )}
+                  <div className="mt-2 flex flex-col gap-2">
                     {enFonts.map((font) => (
                       <button
                         key={font.id}
@@ -693,7 +723,18 @@ export function DesignerPage() {
                     dir="rtl"
                     className="min-h-[64px] w-full resize-none rounded-xl border-[1.5px] border-ink/[.14] bg-white px-3.5 py-3 text-right text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/25"
                   />
-                  <div className="mt-2.5 flex flex-col gap-2">
+                  <Button
+                    size="sm"
+                    className="mt-2.5 w-full"
+                    disabled={!textDraftAr.trim() || arFonts.length === 0}
+                    onClick={() => addTextDraft("AR")}
+                  >
+                    أضف النص للتصميم
+                  </Button>
+                  {arFonts.length > 0 && (
+                    <p className="mt-3 text-right text-[11px] text-ink/45">أو اختر خطًا أدناه لإضافته بهذا الخط</p>
+                  )}
+                  <div className="mt-2 flex flex-col gap-2">
                     {arFonts.map((font) => (
                       <button
                         key={font.id}

@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { calcShippingFee } from "@d-shirtak/shared";
 import { Container } from "../components/ui/Container";
 import { LinkButton } from "../components/ui/LinkButton";
 import { PageSpinner } from "../components/ui/Spinner";
@@ -15,6 +16,8 @@ export function CartPage() {
   if (status === "loading" || isLoading) return <PageSpinner />;
 
   const items = cart?.items ?? [];
+  const subtotal = cart?.subtotal ?? 0;
+  const shippingFee = calcShippingFee(subtotal);
 
   if (items.length === 0) {
     return (
@@ -106,12 +109,16 @@ export function CartPage() {
               </div>
               <div className="flex justify-between">
                 <span>Shipping</span>
-                <span className="text-ink/45">at checkout</span>
+                {shippingFee === 0 ? (
+                  <span className="font-semibold text-brand-700">Free</span>
+                ) : (
+                  <span>EGP {shippingFee.toFixed(0)}</span>
+                )}
               </div>
             </div>
             <div className="flex items-baseline justify-between py-4">
               <span className="font-semibold">Total</span>
-              <span className="font-display text-4xl tracking-wide">EGP {(cart?.subtotal ?? 0).toFixed(0)}</span>
+              <span className="font-display text-4xl tracking-wide">EGP {(subtotal + shippingFee).toFixed(0)}</span>
             </div>
             <LinkButton to="/checkout" size="lg" className="w-full">
               Checkout →

@@ -244,6 +244,8 @@ export function ProductPage() {
             <p className={`mt-3.5 text-sm font-medium ${message.isError ? "text-red-600" : "text-brand-700"}`}>{message.text}</p>
           )}
 
+          <p className="mt-3.5 text-xs text-ink/50">📦 Ships within 1 week</p>
+
           {product.isCustomizable ? (
             <div className="mt-6 flex max-w-[440px] items-center gap-3.5 rounded-2xl bg-brand-500/10 p-4">
               <Sparkle size={20} className="animate-twinkle text-brand-500" />
@@ -264,9 +266,15 @@ export function ProductPage() {
             </div>
           )}
 
-          <div className="mt-6 flex gap-6 font-mono text-[11px] text-ink/50">
+          <div className="mt-6 flex flex-wrap gap-x-6 gap-y-1 font-mono text-[11px] text-ink/50">
             <span>Cash on delivery</span>
-            <span>Free returns</span>
+            {product.isCustomizable ? (
+              <span title="Made specifically for you, so it can't be resold -- returns are only for a print defect or the wrong item shipped.">
+                Custom items: exchange for defects only
+              </span>
+            ) : (
+              <span title="Unworn, unwashed, tags attached. See checkout for details.">7-day returns</span>
+            )}
           </div>
 
           {product.sizes.find((s) => s.sizeId === activeSizeId) && (
