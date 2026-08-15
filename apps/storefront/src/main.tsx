@@ -14,6 +14,9 @@ import { queryClient } from "./lib/query-client";
 import { AuthProvider } from "./features/auth/auth-context";
 import { App } from "./App";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { initAnalytics } from "./lib/analytics";
+
+initAnalytics();
 
 // A lazy-loaded chunk (e.g. DesignerPage) can 404 into the SPA fallback HTML after a new deploy
 // replaces it with a differently-hashed file -- Vite fires this event instead of letting the

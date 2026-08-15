@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import type { AddressInput } from "@d-shirtak/shared";
+import { trackBeginCheckout, trackPurchase } from "../lib/analytics";
 import { Container } from "../components/ui/Container";
 import { Button } from "../components/ui/Button";
 import { Field, Input } from "../components/ui/Field";
@@ -37,6 +38,19 @@ export function CheckoutPage() {
   const [newAddress, setNewAddress] = useState<AddressInput>(emptyAddress);
   const [error, setError] = useState<string | null>(null);
 
+  // Fires once per visit to this page, the moment there's a real cart to check out -- not inside
+  // the early-return guards below since hooks can't run conditionally, so this reads straight off
+  // `cart` (possibly still loading/empty) instead.
+  const trackedBeginCheckoutRef = useRef(false);
+  useEffect(() => {
+    if (trackedBeginCheckoutRef.current || !cart || cart.items.length === 0) return;
+    trackedBeginCheckoutRef.current = true;
+    trackBeginCheckout(
+      cart.items.map((i) => ({ item_id: i.productVariantId, item_name: i.productName, price: i.unitPrice, quantity: i.quantity })),
+      cart.subtotal,
+    );
+  }, [cart]);
+
   // Orders (and the cart rows behind them) belong to a real account -- this is the one point in
   // the guest flow where signing in is actually required. Everything up to here (browsing,
   // designing, adding to cart) works without an account; logging in here also migrates whatever
@@ -70,6 +84,11 @@ export function CheckoutPage() {
         effectiveSelection === "new"
           ? await placeOrder.mutateAsync({ newAddress })
           : await placeOrder.mutateAsync({ addressId: effectiveSelection });
+      trackPurchase({
+        transactionId: order.orderNumber,
+        value: order.total,
+        items: order.items.map((i) => ({ item_id: i.id, item_name: i.productName, price: i.unitPrice, quantity: i.quantity })),
+      });
       navigate(`/account/orders/${order.id}`, { state: { justPlaced: true } });
     } catch (err) {
       setError(describeError(err, "Couldn't place your order. Try again."));

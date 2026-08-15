@@ -10,6 +10,7 @@ import type {
 import { api, setAccessToken } from "../../lib/api-client";
 import { flushLocalCartToServer } from "../cart/guest-cart-sync";
 import { localCart } from "../cart/local-cart";
+import { trackLogin, trackSignUp } from "../../lib/analytics";
 
 type AuthStatus = "loading" | "authenticated" | "guest";
 
@@ -63,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setAccessToken(res.accessToken);
         setUser(res.user);
         setStatus("authenticated");
+        trackLogin();
         // Best-effort: migrate anything they added to the cart before logging in. A failure here
         // (e.g. a variant went out of stock) shouldn't block the login that already succeeded.
         await flushLocalCartToServer().catch(() => undefined);
@@ -73,6 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setAccessToken(res.accessToken);
         setUser(res.user);
         setStatus("authenticated");
+        trackSignUp();
         await flushLocalCartToServer().catch(() => undefined);
       },
       resendSignupOtp: (email) => api.post<SignupStartedDto>("/auth/signup/resend", { email }),

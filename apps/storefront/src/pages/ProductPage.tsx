@@ -10,6 +10,7 @@ import { useProduct } from "../features/catalog/catalog-api";
 import { useAddToCart } from "../features/cart/cart-api";
 import { useAuth } from "../features/auth/auth-context";
 import { describeError } from "../lib/errors";
+import { trackAddToCart } from "../lib/analytics";
 
 export function ProductPage() {
   const { slug } = useParams();
@@ -62,6 +63,7 @@ export function ProductPage() {
                 backDesignJson: null,
               },
       });
+      trackAddToCart({ item_id: variant.sku, item_name: product.name, price: variant.price, quantity });
       setMessage({ text: "Added to your cart.", isError: false });
     } catch (err) {
       setMessage({ text: describeError(err, "Couldn't add that to your cart."), isError: true });

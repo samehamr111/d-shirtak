@@ -18,6 +18,7 @@ import { Sparkle } from "../components/ui/ShirtMark";
 import { ImageOrPlaceholder } from "../components/ui/ImageOrPlaceholder";
 import { api } from "../lib/api-client";
 import { describeError } from "../lib/errors";
+import { trackAddToCart } from "../lib/analytics";
 
 type Side = "front" | "back";
 type Tab = "garment" | "design" | "text";
@@ -326,6 +327,7 @@ export function DesignerPage() {
                 backDesignJson: backJson,
               },
       });
+      trackAddToCart({ item_id: variant.sku, item_name: product.name, price: variant.price, quantity: 1 });
       navigate("/cart");
     } catch (err) {
       setError(describeError(err, "Couldn't save your design. Try again."));
