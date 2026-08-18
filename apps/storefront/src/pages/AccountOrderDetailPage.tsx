@@ -1,15 +1,32 @@
+import { useEffect, useRef } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { Container } from "../components/ui/Container";
 import { PageSpinner } from "../components/ui/Spinner";
 import { ImageOrPlaceholder } from "../components/ui/ImageOrPlaceholder";
 import { OrderStatusBadge } from "../components/OrderStatusBadge";
 import { useMyOrder } from "../features/orders/orders-api";
+import { trackPurchase } from "../lib/analytics";
 
 export function AccountOrderDetailPage() {
   const { orderId } = useParams();
   const location = useLocation();
   const justPlaced = Boolean((location.state as { justPlaced?: boolean } | null)?.justPlaced);
   const { data: order, isLoading } = useMyOrder(orderId);
+
+  // Fired from here rather than checkout's "place order" handler on purpose: this is the actual
+  // confirmation page a customer lands on after a successful order, so there's no risk of the
+  // tracking beacon getting cut off by an immediate navigation, and `justPlaced` naturally
+  // guards against double-counting on a refresh -- it's router state, so it doesn't survive one.
+  const trackedRef = useRef(false);
+  useEffect(() => {
+    if (trackedRef.current || !justPlaced || !order) return;
+    trackedRef.current = true;
+    trackPurchase({
+      transactionId: order.orderNumber,
+      value: order.total,
+      items: order.items.map((i) => ({ item_id: i.id, item_name: i.productName, price: i.unitPrice, quantity: i.quantity })),
+    });
+  }, [justPlaced, order]);
 
   if (isLoading) return <PageSpinner />;
   if (!order) {

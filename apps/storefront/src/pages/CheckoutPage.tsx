@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { calcShippingFee, type AddressInput } from "@d-shirtak/shared";
-import { trackBeginCheckout, trackPurchase } from "../lib/analytics";
+import { trackBeginCheckout } from "../lib/analytics";
 import { Container } from "../components/ui/Container";
 import { Button } from "../components/ui/Button";
 import { Field, Input } from "../components/ui/Field";
@@ -86,11 +86,8 @@ export function CheckoutPage() {
         effectiveSelection === "new"
           ? await placeOrder.mutateAsync({ newAddress })
           : await placeOrder.mutateAsync({ addressId: effectiveSelection });
-      trackPurchase({
-        transactionId: order.orderNumber,
-        value: order.total,
-        items: order.items.map((i) => ({ item_id: i.id, item_name: i.productName, price: i.unitPrice, quantity: i.quantity })),
-      });
+      // Purchase is tracked on the confirmation page (AccountOrderDetailPage), not here -- see
+      // that file for why.
       navigate(`/account/orders/${order.id}`, { state: { justPlaced: true } });
     } catch (err) {
       setError(describeError(err, "Couldn't place your order. Try again."));
