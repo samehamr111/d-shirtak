@@ -14,6 +14,18 @@
     <meta name="twitter:card" content="summary_large_image" />
   </head>
   <body>
+    <!-- Meta Pixel fallback for no-JS clients -- the pixel itself is initialized properly in
+         src/lib/analytics.ts, with page views tracked on every SPA route change instead of just
+         this one static load. -->
+    <noscript>
+      <img
+        height="1"
+        width="1"
+        style="display: none"
+        src="https://www.facebook.com/tr?id=1380498593515612&ev=PageView&noscript=1"
+        alt=""
+      />
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
